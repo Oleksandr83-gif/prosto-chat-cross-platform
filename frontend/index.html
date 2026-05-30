@@ -3460,6 +3460,7 @@
       currentUser: null,
       activeChatId: null,
       activeSocket: null,
+      activeSocketChatId: null,
       refreshTimer: null,
       refreshInFlight: false,
       renderedMessageIds: new Set()
@@ -3677,9 +3678,10 @@
       if (!chatId || !appState.authToken) return;
       if (
         appState.activeSocket &&
-        appState.activeChatId === chatId &&
+        appState.activeSocketChatId === chatId &&
         [WebSocket.OPEN, WebSocket.CONNECTING].includes(appState.activeSocket.readyState)
       ) {
+        appState.activeChatId = chatId;
         return;
       }
       if (appState.activeSocket) {
@@ -3687,6 +3689,7 @@
       }
 
       appState.activeChatId = chatId;
+      appState.activeSocketChatId = chatId;
       const socket = new WebSocket(`${WS_BASE_URL}/chats/${encodeURIComponent(chatId)}?token=${encodeURIComponent(appState.authToken)}`);
       appState.activeSocket = socket;
 
@@ -3700,6 +3703,7 @@
       socket.onclose = () => {
         if (appState.activeSocket === socket) {
           appState.activeSocket = null;
+          appState.activeSocketChatId = null;
         }
       };
     }
@@ -4262,7 +4266,7 @@
           </div>
 
           <div class="screen-actions">
-            <button class="small-button" type="button" onclick="openContactChat('${encodeURIComponent(contact.name)}', '${encodeURIComponent(contact.status)}')">Написати</button>
+            <button class="small-button" type="button" onclick="createPrivateChatWithContact('${encodeURIComponent(contact.id)}')">Написати</button>
             <button class="small-button secondary" type="button" onclick="copyContactNumber('${encodeURIComponent(contact.id)}', '${encodeURIComponent(contact.name)}')">Скопіювати номер</button>
             <button class="small-button secondary" type="button" onclick="showContentScreen(contactsScreen(), 'Контакти', 'Додавання контакту за номером користувача')">Назад</button>
           </div>
@@ -5138,7 +5142,10 @@
       }
 
       try {
-        if (appState.activeSocket?.readyState === WebSocket.OPEN) {
+        if (
+          appState.activeSocket?.readyState === WebSocket.OPEN &&
+          appState.activeSocketChatId === appState.activeChatId
+        ) {
           appState.activeSocket.send(JSON.stringify({
             event: 'message.send',
             chat_id: appState.activeChatId,

@@ -95,12 +95,12 @@ def _ensure_private_member(db: Session, chat_id: str, user_id: str) -> ChatMembe
     return member
 
 
-def restore_private_chat_visibility(db: Session, chat_id: str) -> None:
+def restore_chat_visibility_for_members(db: Session, chat_id: str) -> None:
     chat = db.get(Chat, chat_id)
-    if not chat or chat.type != "private":
+    if not chat or chat.type not in {"private", "group"}:
         return
 
-    # Нове повідомлення має повернути приватний діалог у список обох співрозмовників.
+    # Нове повідомлення має повернути чат у список усіх учасників, доданих у цей діалог.
     for member in chat.members:
         if member.is_hidden:
             member.is_hidden = False
@@ -117,7 +117,7 @@ def create_private_chat(db: Session, current_user: User, contact_user_id: str) -
     if existing:
         _ensure_private_member(db, existing.id, current_user.id)
         _ensure_private_member(db, existing.id, contact_user.id)
-        restore_private_chat_visibility(db, existing.id)
+        restore_chat_visibility_for_members(db, existing.id)
         db.commit()
         db.refresh(existing)
         return serialize_chat(existing, current_user.id)

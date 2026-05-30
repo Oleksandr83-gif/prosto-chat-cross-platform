@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.models.message import Message
 from app.models.user import User
-from app.services.chat_service import ensure_member, restore_private_chat_visibility
+from app.services.chat_service import ensure_member, restore_chat_visibility_for_members
 
 
 def serialize_message(message: Message) -> dict:
@@ -36,10 +36,9 @@ def create_message(db: Session, current_user: User, chat_id: str, message_type: 
     if message_type == "text" and not body:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Text message body is required")
 
-    restore_private_chat_visibility(db, chat_id)
+    restore_chat_visibility_for_members(db, chat_id)
     message = Message(chat_id=chat_id, sender_id=current_user.id, type=message_type, body=body)
     db.add(message)
     db.commit()
     db.refresh(message)
     return message
-
