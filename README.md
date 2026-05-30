@@ -92,5 +92,5 @@ python scripts/release_smoke.py
 
 - `docs/project_report.md` — опис роботи для викладача.
 - `docs/defense_script.md` — короткий сценарій демонстрації.
-- `docs/deploy_ubuntu.md` — інструкція розгортання на Ubuntu/Hetzner.
+- `docs/deploy_ubuntu.md` — інструкція розгортання на Ubuntu.
 - `docs/release_checklist.md` — список технічних перевірок перед релізом.
