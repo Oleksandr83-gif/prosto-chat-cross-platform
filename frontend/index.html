@@ -3459,6 +3459,7 @@
       authToken: localStorage.getItem('prosto_chat_token'),
       currentUser: null,
       activeChatId: null,
+      activeChatType: null,
       activeSocket: null,
       activeSocketChatId: null,
       refreshTimer: null,
@@ -3615,6 +3616,54 @@
       updateOnlineUsersCount();
     }
 
+    function activeChatStillExists() {
+      if (!appState.activeChatId) return false;
+
+      if (appState.activeChatType === 'private') {
+        return appState.privateChats.some(chat => chat.id === appState.activeChatId);
+      }
+
+      if (appState.activeChatType === 'group') {
+        return appState.groupRooms.some(room => room.id === appState.activeChatId);
+      }
+
+      return [...appState.privateChats, ...appState.groupRooms].some(chat => chat.id === appState.activeChatId);
+    }
+
+    function closeActiveSocket() {
+      const socket = appState.activeSocket;
+      appState.activeSocket = null;
+      appState.activeSocketChatId = null;
+
+      if (socket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(socket.readyState)) {
+        socket.close();
+      }
+    }
+
+    function closeActiveChatView(chatType = appState.activeChatType) {
+      closeActiveSocket();
+      appState.activeChatId = null;
+      appState.activeChatType = null;
+      appState.currentPrivateChatId = null;
+      appState.currentGroupRoomId = null;
+      appState.renderedMessageIds = new Set();
+
+      if (chatType === 'group') {
+        showContentScreen(groupChatScreen(), 'Груповий чат', 'Створення кімнати та керування учасниками');
+      } else {
+        showContentScreen(privateChatsScreen(), 'Чати', 'Список приватних діалогів');
+      }
+
+      renderPrivateChatsMenu();
+      renderGroupRoomsMenu();
+    }
+
+    function reconcileActiveChatAfterRefresh() {
+      if (appState.activeChatId && !activeChatStillExists()) {
+        closeActiveChatView(appState.activeChatType);
+      }
+    }
+
     async function refreshChatLists() {
       if (!appState.authToken || appState.refreshInFlight) return;
 
@@ -3631,6 +3680,7 @@
         appState.groupRooms = groupChats.map(mapGroupChatFromApi);
 
         renderUsersList();
+        reconcileActiveChatAfterRefresh();
         renderPrivateChatsMenu();
         renderGroupRoomsMenu();
       } catch (error) {
@@ -3658,6 +3708,7 @@
 
     function renderIncomingPayload(payload) {
       if (!payload) return;
+      if (payload.chat_id && appState.activeChatId && payload.chat_id !== appState.activeChatId) return;
       if (payload.id && appState.renderedMessageIds.has(payload.id)) return;
       if (payload.id) appState.renderedMessageIds.add(payload.id);
 
@@ -3669,6 +3720,7 @@
     async function loadChatMessages(chatId) {
       if (!chatId || !appState.authToken || !el.chatWindow) return;
       const messages = await apiRequest(`/chats/${encodeURIComponent(chatId)}/messages`);
+      if (chatId !== appState.activeChatId) return;
       appState.renderedMessageIds = new Set();
       el.chatWindow.innerHTML = '<div class="day-divider">Сьогодні</div>';
       messages.forEach(renderIncomingPayload);
@@ -3676,26 +3728,25 @@
 
     function connectChatSocket(chatId) {
       if (!chatId || !appState.authToken) return;
-      if (
-        appState.activeSocket &&
-        appState.activeSocketChatId === chatId &&
-        [WebSocket.OPEN, WebSocket.CONNECTING].includes(appState.activeSocket.readyState)
-      ) {
-        appState.activeChatId = chatId;
-        return;
-      }
       if (appState.activeSocket) {
-        appState.activeSocket.close();
+        closeActiveSocket();
       }
 
-      appState.activeChatId = chatId;
-      appState.activeSocketChatId = chatId;
+      const socketChatId = chatId;
+      appState.activeSocketChatId = socketChatId;
       const socket = new WebSocket(`${WS_BASE_URL}/chats/${encodeURIComponent(chatId)}?token=${encodeURIComponent(appState.authToken)}`);
       appState.activeSocket = socket;
 
       socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.event === 'message.created') {
+        let data;
+        try {
+          data = JSON.parse(event.data);
+        } catch (error) {
+          console.warn('Некоректна WebSocket подія:', error.message);
+          return;
+        }
+
+        if (data.event === 'message.created' && data.payload?.chat_id === appState.activeChatId && socketChatId === appState.activeChatId) {
           renderIncomingPayload(data.payload);
         }
       };
@@ -3703,7 +3754,9 @@
       socket.onclose = () => {
         if (appState.activeSocket === socket) {
           appState.activeSocket = null;
-          appState.activeSocketChatId = null;
+          if (appState.activeSocketChatId === socketChatId) {
+            appState.activeSocketChatId = null;
+          }
         }
       };
     }
@@ -4720,10 +4773,9 @@
 
       appState.groupRooms = appState.groupRooms.filter(item => item.id !== roomId);
 
-      if (appState.currentGroupRoomId === roomId) {
-        appState.currentGroupRoomId = null;
+      if (appState.activeChatId === roomId) {
         appState.createdGroup = null;
-        showContentScreen(groupChatScreen(), 'Груповий чат', 'Створення кімнати та керування учасниками');
+        closeActiveChatView('group');
       }
 
       renderGroupRoomsMenu();
@@ -4740,47 +4792,55 @@
       openGroupChatRoom(room);
     }
 
-    // Показує вікно повідомлень конкретного групового чату.
-    function openGroupChatRoom(group) {
-      const groupName = group?.name || 'Груповий чат';
-      const members = Array.isArray(group?.members) ? group.members : [];
-      const memberNames = members.map(member => member.name).join(', ') || 'немає доданих контактів';
+    // Відкриває будь-який чат тільки за його chat_id і типом, без прив'язки до імені або останнього екрана.
+    function openChatRoom(chat, chatType) {
+      if (!chat?.id || !['private', 'group'].includes(chatType)) return;
+
+      closeActiveSocket();
+      appState.activeChatId = chat.id;
+      appState.activeChatType = chatType;
+      appState.renderedMessageIds = new Set();
+
+      if (chatType === 'private') {
+        appState.currentPrivateChatId = chat.id;
+        appState.currentGroupRoomId = null;
+        appState.selectedChatUser = chat.contact.name;
+        updateChatHeader(chat.contact.name, chat.contact.status);
+      } else {
+        const members = Array.isArray(chat.members) ? chat.members : [];
+        const memberNames = members.map(member => member.name).join(', ') || 'немає доданих контактів';
+        appState.currentGroupRoomId = chat.id;
+        appState.currentPrivateChatId = null;
+        appState.selectedChatUser = chat.name;
+
+        if (el.currentChatTitle) {
+          el.currentChatTitle.textContent = `Груповий чат: ${chat.name || 'Груповий чат'}`;
+        }
+
+        if (el.currentChatStatus) {
+          el.currentChatStatus.textContent = `Учасники: ${memberNames} · WebSocket активний`;
+        }
+      }
 
       showChatArea();
-      appState.activeChatId = group.id;
-      connectChatSocket(group.id);
-
-      if (el.currentChatTitle) {
-        el.currentChatTitle.textContent = `Груповий чат: ${groupName}`;
-      }
-
-      if (el.currentChatStatus) {
-        el.currentChatStatus.textContent = `Ви — адміністратор · Учасники: ${memberNames} · WebSocket активний`;
-      }
+      renderPrivateChatsMenu();
+      renderGroupRoomsMenu();
 
       if (el.chatWindow) {
-        el.chatWindow.innerHTML = `
-          <div class="day-divider">Сьогодні</div>
-          <div class="message-row incoming">
-            <div class="message incoming">
-              Кімнату групового чату «${escapeHtml(groupName)}» відкрито. Тут можна писати повідомлення, читати відповіді та обмінюватися файлами.
-              <span class="message-meta">System · ${getCurrentTime()}</span>
-            </div>
-          </div>
-          <div class="message-row incoming">
-            <div class="message incoming">
-              Ви — адміністратор цієї кімнати. Учасники: ${escapeHtml(memberNames)}.
-              <span class="message-meta">System · ${getCurrentTime()}</span>
-            </div>
-          </div>
-        `;
+        el.chatWindow.innerHTML = '<div class="day-divider">Сьогодні</div>';
       }
 
-      appState.selectedChatUser = groupName;
-
-      loadChatMessages(group.id).catch(error => {
-        addMessage(`Не вдалося завантажити історію: ${error.message}`, 'incoming', 'System');
+      connectChatSocket(chat.id);
+      loadChatMessages(chat.id).catch(error => {
+        if (chat.id === appState.activeChatId) {
+          addMessage(`Не вдалося завантажити історію: ${error.message}`, 'incoming', 'System');
+        }
       });
+    }
+
+    // Показує вікно повідомлень конкретного групового чату.
+    function openGroupChatRoom(group) {
+      openChatRoom(group, 'group');
     }
 
     // Генерує екран зі списком приватних чатів.
@@ -4938,9 +4998,8 @@
 
       appState.privateChats = appState.privateChats.filter(item => item.id !== chatId);
 
-      if (appState.currentPrivateChatId === chatId) {
-        appState.currentPrivateChatId = null;
-        showContentScreen(privateChatsScreen(), 'Чати', 'Список приватних діалогів');
+      if (appState.activeChatId === chatId) {
+        closeActiveChatView('private');
       }
 
       renderPrivateChatsMenu();
@@ -4960,28 +5019,7 @@
 
     // Показує вікно повідомлень конкретного приватного чату.
     function openPrivateChatRoom(chat) {
-      const contactName = chat.contact.name;
-
-      showChatArea();
-      updateChatHeader(contactName, chat.contact.status);
-      appState.activeChatId = chat.id;
-      connectChatSocket(chat.id);
-
-      if (el.chatWindow) {
-        el.chatWindow.innerHTML = `
-          <div class="day-divider">Сьогодні</div>
-          <div class="message-row incoming">
-            <div class="message incoming">
-              Приватний чат з ${escapeHtml(contactName)} відкрито. Тут можна писати повідомлення, читати відповіді та обмінюватися файлами.
-              <span class="message-meta">System · ${getCurrentTime()}</span>
-            </div>
-          </div>
-        `;
-      }
-
-      loadChatMessages(chat.id).catch(error => {
-        addMessage(`Не вдалося завантажити історію: ${error.message}`, 'incoming', 'System');
-      });
+      openChatRoom(chat, 'private');
     }
 
     function formatFileSize(sizeBytes) {
@@ -5136,26 +5174,27 @@
       const text = el.messageInput?.value.trim();
       if (!text) return;
 
-      if (!appState.activeChatId) {
-        addMessage('Спочатку відкрийте приватний або груповий чат.', 'incoming', 'System');
+      const chatId = appState.activeChatId;
+      if (!chatId) {
+        addMessage('Оберіть чат.', 'incoming', 'System');
         return;
       }
 
       try {
         if (
           appState.activeSocket?.readyState === WebSocket.OPEN &&
-          appState.activeSocketChatId === appState.activeChatId
+          appState.activeSocketChatId === chatId
         ) {
           appState.activeSocket.send(JSON.stringify({
             event: 'message.send',
-            chat_id: appState.activeChatId,
+            chat_id: chatId,
             payload: {
               type: 'text',
               body: text
             }
           }));
         } else {
-          const message = await apiRequest(`/chats/${encodeURIComponent(appState.activeChatId)}/messages`, {
+          const message = await apiRequest(`/chats/${encodeURIComponent(chatId)}/messages`, {
             method: 'POST',
             body: JSON.stringify({ type: 'text', body: text })
           });
