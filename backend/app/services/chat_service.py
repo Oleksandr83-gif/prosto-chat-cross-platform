@@ -71,7 +71,7 @@ def _find_existing_private_chat(db: Session, user_a_id: str, user_b_id: str) -> 
     user_chats = db.scalars(
         select(Chat)
         .join(ChatMember)
-        .where(Chat.type == "private", ChatMember.user_id == user_a_id, ChatMember.is_hidden.is_(False))
+        .where(Chat.type == "private", ChatMember.user_id == user_a_id)
     ).unique()
 
     for chat in user_chats:
@@ -79,6 +79,20 @@ def _find_existing_private_chat(db: Session, user_a_id: str, user_b_id: str) -> 
         if member_ids == {user_a_id, user_b_id}:
             return chat
     return None
+
+
+def _get_chat_member(db: Session, chat_id: str, user_id: str) -> ChatMember | None:
+    return db.scalar(select(ChatMember).where(ChatMember.chat_id == chat_id, ChatMember.user_id == user_id))
+
+
+def _ensure_private_member(db: Session, chat_id: str, user_id: str) -> ChatMember:
+    member = _get_chat_member(db, chat_id, user_id)
+    if member:
+        return member
+
+    member = ChatMember(chat_id=chat_id, user_id=user_id, role="member")
+    db.add(member)
+    return member
 
 
 def create_private_chat(db: Session, current_user: User, contact_user_id: str) -> ChatOut:
@@ -90,6 +104,12 @@ def create_private_chat(db: Session, current_user: User, contact_user_id: str) -
 
     existing = _find_existing_private_chat(db, current_user.id, contact_user.id)
     if existing:
+        current_member = _ensure_private_member(db, existing.id, current_user.id)
+        _ensure_private_member(db, existing.id, contact_user.id)
+        if current_member.is_hidden:
+            current_member.is_hidden = False
+        db.commit()
+        db.refresh(existing)
         return serialize_chat(existing, current_user.id)
 
     chat = Chat(type="private")

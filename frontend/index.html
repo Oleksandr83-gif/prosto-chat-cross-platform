@@ -3346,7 +3346,7 @@
         <li class="menu-group open">
           <button class="menu-parent active" type="button" data-group="chat">
             <span class="menu-parent-left"><span class="arrow">▶</span> Чат</span>
-            <span class="badge">3</span>
+            <span class="badge" id="chatMenuBadge">0</span>
           </button>
           <ul class="submenu">
             <!-- Розділ контактів користувача. -->
@@ -3459,7 +3459,10 @@
       authToken: localStorage.getItem('prosto_chat_token'),
       currentUser: null,
       activeChatId: null,
-      activeSocket: null
+      activeSocket: null,
+      refreshTimer: null,
+      refreshInFlight: false,
+      renderedMessageIds: new Set()
     };
 
     // Посилання на DOM-елементи, з якими працює JavaScript.
@@ -3498,6 +3501,17 @@
       return appState.authToken ? { Authorization: `Bearer ${appState.authToken}` } : {};
     }
 
+    function formatApiErrorDetail(detail) {
+      if (typeof detail === 'string') return detail;
+      if (Array.isArray(detail)) {
+        return detail.map(item => formatApiErrorDetail(item)).join('\n');
+      }
+      if (detail && typeof detail === 'object') {
+        return detail.message || detail.detail || JSON.stringify(detail);
+      }
+      return String(detail || 'Невідома помилка backend');
+    }
+
     async function apiRequest(path, options = {}) {
       const headers = {
         ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
@@ -3514,7 +3528,7 @@
         let detail = `HTTP ${response.status}`;
         try {
           const data = await response.json();
-          detail = data.detail || detail;
+          detail = formatApiErrorDetail(data.detail || data.message || data || detail);
         } catch (error) {
           detail = response.statusText || detail;
         }
@@ -3600,26 +3614,52 @@
       updateOnlineUsersCount();
     }
 
+    async function refreshChatLists() {
+      if (!appState.authToken || appState.refreshInFlight) return;
+
+      appState.refreshInFlight = true;
+      try {
+        const [contacts, privateChats, groupChats] = await Promise.all([
+          apiRequest('/contacts'),
+          apiRequest('/chats?type=private'),
+          apiRequest('/chats?type=group')
+        ]);
+
+        appState.contacts = contacts.map(mapContactFromApi);
+        appState.privateChats = privateChats.map(mapPrivateChatFromApi);
+        appState.groupRooms = groupChats.map(mapGroupChatFromApi);
+
+        renderUsersList();
+        renderPrivateChatsMenu();
+        renderGroupRoomsMenu();
+      } catch (error) {
+        console.warn('Не вдалося оновити списки чатів:', error.message);
+      } finally {
+        appState.refreshInFlight = false;
+      }
+    }
+
+    function startChatListRefresh() {
+      if (appState.refreshTimer) clearInterval(appState.refreshTimer);
+      appState.refreshTimer = setInterval(refreshChatLists, 3000);
+    }
+
     async function loadInitialData() {
-      const [currentUser, contacts, chats] = await Promise.all([
-        apiRequest('/users/me'),
-        apiRequest('/contacts'),
-        apiRequest('/chats')
-      ]);
+      const currentUser = await apiRequest('/users/me');
 
       appState.currentUser = currentUser;
       appState.currentUserName = currentUser.display_name;
-      appState.contacts = contacts.map(mapContactFromApi);
-      appState.privateChats = chats.filter(chat => chat.type === 'private').map(mapPrivateChatFromApi);
-      appState.groupRooms = chats.filter(chat => chat.type === 'group').map(mapGroupChatFromApi);
 
       applyProfileName(currentUser.display_name);
-      renderUsersList();
-      renderPrivateChatsMenu();
-      renderGroupRoomsMenu();
+      await refreshChatLists();
+      startChatListRefresh();
     }
 
     function renderIncomingPayload(payload) {
+      if (!payload) return;
+      if (payload.id && appState.renderedMessageIds.has(payload.id)) return;
+      if (payload.id) appState.renderedMessageIds.add(payload.id);
+
       const type = payload.sender_id === appState.currentUser?.id ? 'outgoing' : 'incoming';
       const body = payload.type === 'file' ? `Файл: ${payload.body}` : payload.body;
       addMessage(body || '', type, payload.sender_name || 'User');
@@ -3628,12 +3668,20 @@
     async function loadChatMessages(chatId) {
       if (!chatId || !appState.authToken || !el.chatWindow) return;
       const messages = await apiRequest(`/chats/${encodeURIComponent(chatId)}/messages`);
+      appState.renderedMessageIds = new Set();
       el.chatWindow.innerHTML = '<div class="day-divider">Сьогодні</div>';
       messages.forEach(renderIncomingPayload);
     }
 
     function connectChatSocket(chatId) {
       if (!chatId || !appState.authToken) return;
+      if (
+        appState.activeSocket &&
+        appState.activeChatId === chatId &&
+        [WebSocket.OPEN, WebSocket.CONNECTING].includes(appState.activeSocket.readyState)
+      ) {
+        return;
+      }
       if (appState.activeSocket) {
         appState.activeSocket.close();
       }
@@ -4346,7 +4394,7 @@
         });
 
         const newContact = mapContactFromApi(response);
-        appState.contacts.push(newContact);
+        await refreshChatLists();
         showContentScreen(contactsScreen(), 'Контакти', 'Додавання контакту за номером користувача');
         addMessage(`Контакт ${newContact.name} додано і збережено в БД.`, 'incoming', 'System');
       } catch (error) {
@@ -4807,7 +4855,14 @@
             body: JSON.stringify({ contact_user_id: contact.userId })
           });
           chat = mapPrivateChatFromApi(response);
-          appState.privateChats.push(chat);
+          const existingIndex = appState.privateChats.findIndex(item => item.id === chat.id);
+          if (existingIndex >= 0) {
+            appState.privateChats[existingIndex] = chat;
+          } else {
+            appState.privateChats.push(chat);
+          }
+          await refreshChatLists();
+          chat = appState.privateChats.find(item => item.id === chat.id) || chat;
         } catch (error) {
           alert(`Не вдалося створити приватний чат: ${error.message}`);
           return;
@@ -4828,6 +4883,10 @@
 
       menu.classList.toggle('collapsed', appState.privateChatsCollapsed);
       if (toggle) toggle.textContent = appState.privateChatsCollapsed ? '▸' : '▾';
+
+      // Лічильник показує тільки приватні чати, які реально отримані з backend.
+      const badge = document.getElementById("chatMenuBadge");
+      if (badge) badge.textContent = String(appState.privateChats.length);
 
       menu.innerHTML = appState.privateChats.map(chat => {
         const activeClass = chat.id === appState.currentPrivateChatId ? 'active' : '';

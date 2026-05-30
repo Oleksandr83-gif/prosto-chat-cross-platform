@@ -10,6 +10,15 @@ def list_contacts(db: Session, owner_user_id: str) -> list[Contact]:
     return list(db.scalars(select(Contact).where(Contact.owner_user_id == owner_user_id).order_by(Contact.created_at.desc())))
 
 
+def _get_contact(db: Session, owner_user_id: str, contact_user_id: str) -> Contact | None:
+    return db.scalar(
+        select(Contact).where(
+            Contact.owner_user_id == owner_user_id,
+            Contact.contact_user_id == contact_user_id,
+        )
+    )
+
+
 def add_contact(db: Session, owner: User, user_number: str) -> Contact:
     contact_user = db.scalar(select(User).where(User.user_number == user_number))
     if not contact_user or (contact_user.privacy_settings and not contact_user.privacy_settings.allow_search):
@@ -18,17 +27,19 @@ def add_contact(db: Session, owner: User, user_number: str) -> Contact:
     if contact_user.id == owner.id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot add yourself to contacts")
 
-    existing = db.scalar(
-        select(Contact).where(Contact.owner_user_id == owner.id, Contact.contact_user_id == contact_user.id)
-    )
-    if existing:
-        return existing
+    owner_contact = _get_contact(db, owner.id, contact_user.id)
+    if not owner_contact:
+        owner_contact = Contact(owner_user_id=owner.id, contact_user_id=contact_user.id)
+        db.add(owner_contact)
 
-    contact = Contact(owner_user_id=owner.id, contact_user_id=contact_user.id)
-    db.add(contact)
+    # Зворотний контакт потрібен, щоб другий користувач побачив співрозмовника після автооновлення.
+    reverse_contact = _get_contact(db, contact_user.id, owner.id)
+    if not reverse_contact:
+        db.add(Contact(owner_user_id=contact_user.id, contact_user_id=owner.id))
+
     db.commit()
-    db.refresh(contact)
-    return contact
+    db.refresh(owner_contact)
+    return owner_contact
 
 
 def delete_contact(db: Session, owner: User, contact_id: str) -> None:
