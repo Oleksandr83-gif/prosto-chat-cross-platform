@@ -3571,6 +3571,7 @@
 
       return {
         id: chat.id,
+        roomNumber: chat.room_number || chat.id,
         contact,
         createdAt: chat.created_at
       };
@@ -3580,6 +3581,7 @@
       const currentUserId = appState.currentUser?.id;
       return {
         id: chat.id,
+        roomNumber: chat.room_number || chat.id,
         name: chat.title || chat.name || 'Груповий чат',
         owner: {
           id: chat.owner_user_id,
@@ -3957,13 +3959,14 @@
     }
 
     // Оновлює заголовок активного приватного чату.
-    function updateChatHeader(userName, status) {
+    function updateChatHeader(userName, status, roomNumber = null) {
       appState.selectedChatUser = userName;
       if (el.currentChatTitle) el.currentChatTitle.textContent = `Приватний чат з ${userName}`;
       if (el.currentChatStatus) {
+        const roomText = roomNumber ? ` · кімната ${roomNumber}` : '';
         el.currentChatStatus.textContent = status === 'online'
-          ? 'Користувач online · WebSocket активний'
-          : 'Користувач offline · повідомлення буде збережено в БД';
+          ? `Користувач online · WebSocket активний${roomText}`
+          : `Користувач offline · повідомлення буде збережено в БД${roomText}`;
       }
     }
 
@@ -4603,7 +4606,7 @@
         ? `
           <div class="group-created-box">
             <strong>Остання створена кімната: ${escapeHtml(appState.createdGroup.name)}</strong>
-            <span>Ви — адміністратор · Учасники: ${appState.createdGroup.members.map(member => escapeHtml(member.name)).join(', ') || 'немає доданих контактів'}</span>
+            <span>Номер кімнати: ${escapeHtml(appState.createdGroup.roomNumber)} · Ви — адміністратор · Учасники: ${appState.createdGroup.members.map(member => escapeHtml(member.name)).join(', ') || 'немає доданих контактів'}</span>
           </div>
         `
         : '';
@@ -4734,7 +4737,7 @@
           <li class="group-room-link ${activeClass}" title="${escapeHtml(room.name)}">
             <div class="tree-link-main" onclick="openGroupRoomById('${encodeURIComponent(room.id)}')">
               <span>${escapeHtml(room.name)}</span>
-              <small>${escapeHtml(memberNames)}</small>
+              <small>${escapeHtml(room.roomNumber)} · ${escapeHtml(memberNames)}</small>
             </div>
             <button class="tree-delete-btn" type="button" title="Видалити груповий чат" onclick="event.stopPropagation(); deleteGroupRoom('${encodeURIComponent(room.id)}')">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
@@ -4805,7 +4808,7 @@
         appState.currentPrivateChatId = chat.id;
         appState.currentGroupRoomId = null;
         appState.selectedChatUser = chat.contact.name;
-        updateChatHeader(chat.contact.name, chat.contact.status);
+        updateChatHeader(chat.contact.name, chat.contact.status, chat.roomNumber);
       } else {
         const members = Array.isArray(chat.members) ? chat.members : [];
         const memberNames = members.map(member => member.name).join(', ') || 'немає доданих контактів';
@@ -4818,7 +4821,7 @@
         }
 
         if (el.currentChatStatus) {
-          el.currentChatStatus.textContent = `Учасники: ${memberNames} · WebSocket активний`;
+          el.currentChatStatus.textContent = `Кімната ${chat.roomNumber} · Учасники: ${memberNames} · WebSocket активний`;
         }
       }
 
@@ -4853,7 +4856,7 @@
                 <div class="contact-avatar">${escapeHtml(chat.contact.name.slice(0, 1).toUpperCase() || '?')}</div>
                 <div>
                   <strong>${escapeHtml(chat.contact.name)}</strong>
-                  <span>${escapeHtml(chat.contact.id)} · приватний чат</span>
+                  <span>Кімната ${escapeHtml(chat.roomNumber)} · ${escapeHtml(chat.contact.id)} · приватний чат</span>
                 </div>
                 <button class="small-button secondary" type="button" onclick="openPrivateChatById('${encodeURIComponent(chat.id)}')">Відкрити</button>
               </div>
@@ -4959,7 +4962,7 @@
           <li class="private-chat-link ${activeClass}" title="${escapeHtml(chat.contact.name)}">
             <div class="tree-link-main" onclick="openPrivateChatById('${encodeURIComponent(chat.id)}')">
               <span>${escapeHtml(chat.contact.name)}</span>
-              <small>${escapeHtml(chat.contact.status)} · приватний чат</small>
+              <small>${escapeHtml(chat.roomNumber)} · ${escapeHtml(chat.contact.status)} · приватний чат</small>
             </div>
             <button class="tree-delete-btn" type="button" title="Видалити приватний чат" onclick="event.stopPropagation(); deletePrivateChat('${encodeURIComponent(chat.id)}')">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="2">

@@ -11,6 +11,7 @@ class Chat(Base):
     __tablename__ = "chats"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    room_number: Mapped[str | None] = mapped_column(String(32), unique=True, index=True)
     type: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     name: Mapped[str | None] = mapped_column(String(160))
     owner_user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"), index=True)

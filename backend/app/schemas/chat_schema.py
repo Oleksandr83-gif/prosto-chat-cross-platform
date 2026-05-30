@@ -16,6 +16,7 @@ class ChatMemberOut(BaseModel):
 
 class ChatOut(BaseModel):
     id: str
+    room_number: str | None = None
     type: str
     name: str | None = None
     title: str

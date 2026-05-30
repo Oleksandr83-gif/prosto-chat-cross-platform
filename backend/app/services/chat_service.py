@@ -1,3 +1,5 @@
+from random import randint
+
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -28,6 +30,16 @@ def ensure_admin(db: Session, chat_id: str, user_id: str) -> ChatMember:
     return member
 
 
+def generate_chat_room_number(db: Session, chat_type: str) -> str:
+    prefix = "GR" if chat_type == "group" else "PR"
+    for _ in range(1000):
+        candidate = f"{prefix}-{randint(100, 999)}-{randint(100, 999)}"
+        exists = db.scalar(select(Chat).where(Chat.room_number == candidate))
+        if not exists:
+            return candidate
+    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not generate chat room number")
+
+
 def serialize_chat(chat: Chat, current_user_id: str) -> ChatOut:
     title = chat.name or "Chat"
     if chat.type == "private":
@@ -36,6 +48,7 @@ def serialize_chat(chat: Chat, current_user_id: str) -> ChatOut:
 
     return ChatOut(
         id=chat.id,
+        room_number=chat.room_number,
         type=chat.type,
         name=chat.name,
         title=title,
@@ -122,7 +135,7 @@ def create_private_chat(db: Session, current_user: User, contact_user_id: str) -
         db.refresh(existing)
         return serialize_chat(existing, current_user.id)
 
-    chat = Chat(type="private")
+    chat = Chat(type="private", room_number=generate_chat_room_number(db, "private"))
     db.add(chat)
     db.flush()
     db.add_all(
@@ -137,7 +150,7 @@ def create_private_chat(db: Session, current_user: User, contact_user_id: str) -
 
 
 def create_group_chat(db: Session, current_user: User, name: str, member_ids: list[str]) -> ChatOut:
-    chat = Chat(type="group", name=name, owner_user_id=current_user.id)
+    chat = Chat(type="group", room_number=generate_chat_room_number(db, "group"), name=name, owner_user_id=current_user.id)
     db.add(chat)
     db.flush()
 
