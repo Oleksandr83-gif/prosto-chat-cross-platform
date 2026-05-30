@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
+from app.runtime import amqp_publisher, connection_manager
 from app.schemas.message_schema import MessageCreateRequest, MessageOut
 from app.services.message_service import create_message, list_messages, serialize_message
 
@@ -22,12 +23,15 @@ def get_messages(
 
 
 @router.post("", response_model=MessageOut, status_code=status.HTTP_201_CREATED)
-def send_message_fallback(
+async def send_message_fallback(
     chat_id: str,
     payload: MessageCreateRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
     message = create_message(db, current_user, chat_id, payload.type, payload.body)
-    return serialize_message(message)
-
+    serialized = serialize_message(message)
+    # REST fallback також повідомляє відкриті WebSocket-клієнти, щоб відповідь не чекала ручного оновлення.
+    amqp_publisher.publish("message.created", serialized)
+    await connection_manager.broadcast_json(chat_id, {"event": "message.created", "payload": serialized})
+    return serialized

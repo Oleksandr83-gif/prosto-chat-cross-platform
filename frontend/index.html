@@ -3632,6 +3632,28 @@
       return [...appState.privateChats, ...appState.groupRooms].some(chat => chat.id === appState.activeChatId);
     }
 
+    function getActiveChat() {
+      if (!appState.activeChatId) return null;
+      if (appState.activeChatType === 'private') {
+        return appState.privateChats.find(chat => chat.id === appState.activeChatId) || null;
+      }
+      if (appState.activeChatType === 'group') {
+        return appState.groupRooms.find(room => room.id === appState.activeChatId) || null;
+      }
+      return null;
+    }
+
+    function activeChatStateIsConsistent() {
+      if (!getActiveChat()) return false;
+      if (appState.activeChatType === 'private') {
+        return appState.currentPrivateChatId === appState.activeChatId && !appState.currentGroupRoomId;
+      }
+      if (appState.activeChatType === 'group') {
+        return appState.currentGroupRoomId === appState.activeChatId && !appState.currentPrivateChatId;
+      }
+      return false;
+    }
+
     function closeActiveSocket() {
       const socket = appState.activeSocket;
       appState.activeSocket = null;
@@ -3658,6 +3680,16 @@
 
       renderPrivateChatsMenu();
       renderGroupRoomsMenu();
+    }
+
+    function restoreActiveChatView() {
+      const chat = getActiveChat();
+      if (chat && appState.activeChatType) {
+        openChatRoom(chat, appState.activeChatType);
+        return;
+      }
+
+      closeActiveChatView();
     }
 
     function reconcileActiveChatAfterRefresh() {
@@ -4013,7 +4045,7 @@
       const submitAction = isRegister ? 'finishRegistration()' : 'saveProfileChanges()';
       const cancelAction = isRegister
         ? 'closeRegistrationModal()'
-        : "showChatArea(); updateChatHeader(appState.selectedChatUser, 'online')";
+        : 'restoreActiveChatView()';
       const cancelText = isRegister ? 'Скасувати' : 'Назад до чату';
       const avatarContent = appState.avatarDataUrl ? avatarImageHtml(appState.avatarDataUrl) : '👤';
       const passwordLabel = isRegister ? 'Пароль' : 'Новий пароль <span class="optional-mark">необов\'язково</span>';
@@ -4194,8 +4226,7 @@
         appState.currentUser = user;
         appState.currentUserName = user.display_name;
         applyProfileName(user.display_name);
-        showChatArea();
-        updateChatHeader(appState.selectedChatUser, 'online');
+        restoreActiveChatView();
         addMessage('Профіль оновлено і збережено в базі даних.', 'incoming', 'System');
       } catch (error) {
         alert(`Не вдалося оновити профіль: ${error.message}`);
@@ -4232,7 +4263,7 @@
           <input type="password" placeholder="Пароль" />
           <div class="screen-actions">
             <button class="small-button danger" type="button">Видалити акаунт</button>
-            <button class="small-button secondary" type="button" onclick="showChatArea(); updateChatHeader(appState.selectedChatUser, 'online')">Скасувати</button>
+            <button class="small-button secondary" type="button" onclick="restoreActiveChatView()">Скасувати</button>
           </div>
         </div>
       `;
@@ -5180,6 +5211,13 @@
       const chatId = appState.activeChatId;
       if (!chatId) {
         addMessage('Оберіть чат.', 'incoming', 'System');
+        return;
+      }
+
+      if (!activeChatStateIsConsistent()) {
+        // Захист від відправки у старий chat_id, якщо екран і стан активного чату розійшлися.
+        closeActiveSocket();
+        addMessage('Оберіть чат зі списку ще раз перед відправкою.', 'incoming', 'System');
         return;
       }
 
