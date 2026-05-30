@@ -1,0 +1,5194 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Просто Чат</title>
+  <style>
+    /* Глобальні CSS-змінні: кольори, розміри, радіуси, тіні та висоти основних зон інтерфейсу. */
+    :root {
+      --bg: #eef2f6;
+      --panel: #ffffff;
+      --panel-soft: #f8fafc;
+      --border: #d9e0e8;
+      --text: #2f3a45;
+      --muted: #7a8794;
+      --primary: #6758f3;
+      --primary-dark: #5143d8;
+      --danger: #dc3545;
+      --success: #19a974;
+      --message-in: #f1f5f9;
+      --message-out: #6758f3;
+      --shadow: 0 10px 30px rgba(31, 41, 55, 0.08);
+    }
+
+    /* Базове скидання відступів і box-sizing для однакової поведінки елементів у браузері. */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    /* Основні стилі сторінки: фон, колір тексту, центрування стартового екрана. */
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+
+    button,
+    select,
+    input {
+      font: inherit;
+    }
+
+    button {
+      border: none;
+    }
+
+    /* Службовий клас для приховування елементів через JavaScript. */
+    .hidden {
+      display: none !important;
+    }
+
+    /* =========================
+       START PAGE
+       ========================= */
+
+    /* Стартовий екран до входу користувача в чат. */
+    .start-page {
+      width: min(1120px, 100%);
+      height: min(720px, calc(100vh - 48px));
+      background:
+        radial-gradient(circle at 18% 18%, rgba(103, 88, 243, 0.10), transparent 28%),
+        radial-gradient(circle at 84% 12%, rgba(103, 88, 243, 0.08), transparent 26%),
+        linear-gradient(135deg, #ffffff 0%, #f8f9ff 45%, #f3f6fb 100%);
+      border: 1px solid #d5dce6;
+      box-shadow: 0 28px 80px rgba(31, 41, 55, 0.14);
+      position: relative;
+      overflow: hidden;
+      border-radius: 22px;
+    }
+
+    .start-page::before {
+      content: "";
+      position: absolute;
+      width: 520px;
+      height: 520px;
+      right: -230px;
+      bottom: -260px;
+      border-radius: 50%;
+      background: rgba(103, 88, 243, 0.08);
+      border: 1px solid rgba(103, 88, 243, 0.10);
+    }
+
+    .start-page::after {
+      content: "";
+      position: absolute;
+      width: 240px;
+      height: 240px;
+      left: -90px;
+      top: 120px;
+      border-radius: 50%;
+      background: rgba(100, 116, 139, 0.06);
+    }
+
+    /* Верхня частина стартової сторінки: назва сторінки та вибір мови. */
+    .start-top {
+      height: 86px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 24px 40px 0;
+      position: relative;
+      z-index: 2;
+    }
+
+    .start-title {
+      font-size: 14px;
+      color: #5f6b7a;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .start-title::before {
+      content: "";
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 0 5px rgba(103, 88, 243, 0.10);
+    }
+
+    /* Випадаючий список вибору мови інтерфейсу. */
+    .language-select {
+      width: 230px;
+      height: 46px;
+      border: 1px solid #cfd7e2;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.82);
+      color: #3d4a57;
+      padding: 0 18px;
+      outline: none;
+      font-size: 15px;
+      cursor: pointer;
+      box-shadow: 0 8px 22px rgba(31, 41, 55, 0.06);
+      backdrop-filter: blur(10px);
+    }
+
+    .language-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(103, 88, 243, 0.10);
+    }
+
+    /* Центральна зона стартового екрана з логотипом, описом і формою входу. */
+    .hero-area {
+      position: relative;
+      z-index: 2;
+      width: min(760px, calc(100% - 60px));
+      margin: 72px auto 0;
+      text-align: center;
+    }
+
+    .start-logo {
+      text-align: center;
+      color: var(--primary);
+      font-weight: 900;
+      font-style: italic;
+      letter-spacing: 5px;
+      line-height: 1.25;
+      user-select: none;
+      text-shadow: 0 10px 24px rgba(103, 88, 243, 0.18);
+      margin-bottom: 14px;
+    }
+
+    .start-logo .logo-line-1 {
+      font-size: 39px;
+    }
+
+    .start-logo .logo-line-2 {
+      font-size: 31px;
+      margin-left: 120px;
+    }
+
+    .start-subtitle {
+      color: #7a8794;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 34px;
+    }
+
+    /* Блок авторизації: поля логіна/пароля та кнопки входу/реєстрації. */
+    .auth-box {
+      width: min(660px, 100%);
+      min-height: 210px;
+      margin: 0 auto;
+      border: 1px solid rgba(103, 88, 243, 0.18);
+      background: rgba(255, 255, 255, 0.76);
+      padding: 28px;
+      display: grid;
+      grid-template-columns: 1fr 185px;
+      gap: 28px;
+      align-items: center;
+      border-radius: 24px;
+      box-shadow: 0 24px 70px rgba(31, 41, 55, 0.12);
+      backdrop-filter: blur(16px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .auth-box::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-top: 4px solid rgba(103, 88, 243, 0.42);
+      pointer-events: none;
+    }
+
+    .auth-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      text-align: left;
+    }
+
+    .auth-row {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      color: #43505d;
+      font-size: 14px;
+    }
+
+    .auth-row label {
+      font-weight: 800;
+      color: #566272;
+      letter-spacing: 0.02em;
+    }
+
+    .auth-row input {
+      border: 1px solid #d8dfe8;
+      outline: none;
+      height: 46px;
+      padding: 0 14px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 13px;
+      transition: 0.18s ease;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    .auth-row input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(103, 88, 243, 0.10);
+      background: #fff;
+    }
+
+    .auth-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+      justify-content: center;
+    }
+
+    .auth-link-button {
+      background: #eef1ff;
+      color: var(--primary-dark);
+      cursor: pointer;
+      font-size: 15px;
+      padding: 13px 16px;
+      text-align: center;
+      border-radius: 14px;
+      font-weight: 800;
+      transition: 0.18s ease;
+    }
+
+    .auth-link-button.primary-login {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 14px 28px rgba(103, 88, 243, 0.24);
+    }
+
+    .auth-link-button:hover {
+      transform: translateY(-1px);
+      filter: brightness(0.98);
+    }
+
+    .auth-hint {
+      grid-column: 1 / 3;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: left;
+      padding-top: 2px;
+    }
+
+    .start-footer-note {
+      margin-top: 18px;
+      color: #8a95a3;
+      font-size: 12px;
+    }
+
+    /* Затемнений фон модального вікна реєстрації. */
+    .register-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      background: rgba(15, 23, 42, 0.32);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 26px;
+    }
+
+    /* Модальне вікно реєстрації нового користувача. */
+    .register-modal {
+      width: min(880px, 100%);
+      max-height: calc(100% - 30px);
+      overflow-y: auto;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(207, 215, 226, 0.95);
+      border-radius: 28px;
+      box-shadow: 0 34px 90px rgba(15, 23, 42, 0.25);
+      padding: 26px;
+      position: relative;
+    }
+
+    .register-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .register-modal-header h2 {
+      font-size: 26px;
+      line-height: 1.2;
+      margin-bottom: 6px;
+    }
+
+    .register-modal-header p {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 14px;
+    }
+
+    .modal-close-button {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #eef2f6;
+      color: #334155;
+      cursor: pointer;
+      font-size: 22px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .modal-close-button:hover {
+      background: #e2e8f0;
+    }
+
+    .start-register-card {
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      max-width: none !important;
+      max-height: none !important;
+      overflow-y: visible !important;
+      background: transparent !important;
+    }
+
+    .start-register-card .register-layout {
+      grid-template-columns: 170px 1fr;
+    }
+
+    /* =========================
+       CHAT APP
+       ========================= */
+
+    /* Основний контейнер застосунку після входу: sidebar, topbar, основна зона і footer. */
+    .app-shell {
+      width: min(1180px, 100%);
+      height: min(760px, calc(100vh - 48px));
+      background: var(--panel);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      grid-template-rows: 64px minmax(0, 1fr) 56px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Ліва верхня зона з логотипом застосунку. */
+    .brand {
+      grid-column: 1 / 2;
+      grid-row: 1 / 2;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      background: #fff;
+      letter-spacing: 1px;
+      color: var(--primary);
+      font-weight: 800;
+      font-style: italic;
+    }
+
+    .brand span:first-child {
+      font-size: 18px;
+    }
+
+    .brand span:last-child {
+      margin-top: 4px;
+      font-size: 14px;
+    }
+
+    /* Верхня панель активного чату: назва чату, статус і профіль користувача. */
+    .topbar {
+      grid-column: 2 / 3;
+      grid-row: 1 / 2;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-soft);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 22px;
+    }
+
+    .topbar-title {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .topbar-title strong {
+      font-size: 15px;
+    }
+
+    .topbar-title span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Блок профілю поточного користувача у верхній панелі. */
+    .profile-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .profile-box span {
+      cursor: default;
+    }
+
+    .profile-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #dce3ec;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: #7c8997;
+      overflow: hidden;
+    }
+
+    .profile-avatar-button {
+      padding: 0;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    }
+
+    .profile-avatar-button:hover,
+    .profile-avatar-button[aria-expanded="true"] {
+      background: #eef1ff !important;
+      color: var(--primary) !important;
+      box-shadow: 0 0 0 4px rgba(103, 88, 243, 0.12) !important;
+      transform: translateY(-1px);
+    }
+
+    .profile-widget {
+      position: absolute;
+      top: 74px;
+      right: 18px;
+      width: min(330px, calc(100% - 36px));
+      z-index: 30;
+      background: rgba(255, 255, 255, 0.98);
+      border: 1px solid #d7dfeb;
+      border-radius: 18px;
+      box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
+      padding: 16px;
+      color: var(--text);
+      backdrop-filter: blur(14px);
+    }
+
+    .profile-widget::before {
+      content: "";
+      position: absolute;
+      top: -7px;
+      right: 22px;
+      width: 14px;
+      height: 14px;
+      transform: rotate(45deg);
+      background: rgba(255, 255, 255, 0.98);
+      border-left: 1px solid #d7dfeb;
+      border-top: 1px solid #d7dfeb;
+    }
+
+    .profile-widget-head {
+      display: flex;
+      gap: 13px;
+      align-items: center;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #edf1f6;
+      position: relative;
+      z-index: 1;
+    }
+
+    .profile-widget-avatar {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: #eef1ff;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 900;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: inset 0 0 0 4px #fff;
+    }
+
+    .profile-widget-title {
+      min-width: 0;
+    }
+
+    .profile-widget-title strong {
+      display: block;
+      font-size: 17px;
+      line-height: 1.25;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .profile-widget-title span {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: #ecfdf5;
+      color: #047857;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .profile-widget-grid {
+      display: grid;
+      gap: 10px;
+      margin: 14px 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .profile-widget-row {
+      display: grid;
+      gap: 4px;
+      padding: 10px 12px;
+      border: 1px solid #edf1f6;
+      border-radius: 12px;
+      background: #f8fafc;
+    }
+
+    .profile-widget-row label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .profile-widget-row strong,
+    .profile-widget-row span {
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .profile-widget-number {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .profile-widget-number code {
+      color: #1f2937;
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+    }
+
+    .profile-widget-copy {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: #eef1ff;
+      color: var(--primary);
+      cursor: pointer;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+
+    .profile-widget-copy svg {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .profile-widget-copy:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .profile-widget-actions {
+      display: flex;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .profile-widget-actions .small-button {
+      flex: 1;
+      justify-content: center;
+      min-height: 38px;
+      padding: 10px 12px;
+    }
+
+    /* Ліва навігаційна панель: меню, дерева чатів і список онлайн-користувачів. */
+    .sidebar {
+      grid-column: 1 / 2;
+      grid-row: 2 / 3;
+      border-right: 1px solid var(--border);
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Заголовок секції меню в лівій панелі. */
+    .menu-title {
+      padding: 18px 20px 10px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+
+    /* Список основних пунктів меню. */
+    .menu-list {
+      list-style: none;
+      padding: 0 10px 10px;
+    }
+
+    /* Група меню, яка може розгортатися або згортатися. */
+    .menu-group {
+      margin-bottom: 6px;
+    }
+
+    /* Батьківський пункт меню, наприклад 'Чат', 'Налаштування', 'Файли'. */
+    .menu-parent {
+      width: 100%;
+      background: transparent;
+      padding: 12px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #3d4a57;
+      font-size: 15px;
+      text-align: left;
+      transition: 0.18s ease;
+    }
+
+    .menu-parent:hover,
+    .menu-parent.active {
+      background: #f0efff;
+      color: var(--primary);
+    }
+
+    .menu-parent-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .arrow {
+      font-size: 11px;
+      color: var(--muted);
+      transition: transform 0.18s ease;
+    }
+
+    .menu-parent.active .arrow {
+      transform: rotate(90deg);
+      color: var(--primary);
+    }
+
+    /* Вкладені пункти меню всередині розділу. */
+    .submenu {
+      list-style: none;
+      margin: 4px 0 8px 18px;
+      padding-left: 12px;
+      border-left: 2px solid #eef2f6;
+      display: none;
+    }
+
+    .menu-group.open .submenu {
+      display: block;
+    }
+
+    /* Окремий пункт вкладеного меню. */
+    .menu-item {
+      padding: 9px 10px;
+      border-radius: 8px;
+      margin-bottom: 3px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #3d4a57;
+      font-size: 14px;
+      transition: 0.18s ease;
+    }
+
+    .menu-item:hover,
+    .menu-item.active {
+      background: #f0efff;
+      color: var(--primary);
+    }
+
+    /* Малий бейдж для кількості або статусу біля пунктів меню. */
+    .badge {
+      min-width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: var(--primary);
+      color: white;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 7px;
+    }
+
+    /* Заголовок блоку користувачів онлайн у sidebar. */
+    .online-users-header {
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+
+    .online-count-badge {
+      min-width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: #ecfdf5;
+      color: #047857;
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 7px;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    /* Прокручуваний список користувачів онлайн. */
+    .chat-users {
+      padding-top: 6px;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    .offline-user {
+      display: none;
+    }
+
+    /* Картка користувача в списку онлайн-користувачів. */
+    .user-card {
+      margin: 6px 10px;
+      padding: 10px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    .user-card:hover,
+    .user-card.active {
+      background: #f5f7fb;
+    }
+
+    .user-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #dfe6f0;
+      color: #5d6875;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .user-info {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .user-info strong {
+      display: block;
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .user-info span {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #b7c0cb;
+      flex-shrink: 0;
+    }
+
+    .status-dot.online {
+      background: var(--success);
+    }
+
+    /* Головна робоча зона: вікно повідомлень або контентний екран плюс форма введення. */
+    .main {
+      grid-column: 2 / 3;
+      grid-row: 2 / 3;
+      background: #fbfcfe;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) 72px;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* Області прокручування: чат із повідомленнями та службові екрани контенту. */
+    .chat-window,
+    .content-screen {
+      padding: 24px;
+      overflow-y: auto;
+      min-height: 0;
+      max-height: 100%;
+    }
+
+    .content-screen {
+      padding-bottom: 96px;
+      scrollbar-width: thin;
+      scrollbar-color: #c7cfda transparent;
+    }
+
+    .chat-window {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* Заголовки внутрішніх екранів: контакти, файли, налаштування тощо. */
+    .content-screen h2 {
+      margin-bottom: 8px;
+      font-size: 24px;
+    }
+
+    .content-screen p {
+      color: var(--muted);
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+
+    /* Універсальна картка для внутрішніх сторінок застосунку. */
+    .screen-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      max-width: 680px;
+    }
+
+    /* Картка форми реєстрації / редагування даних користувача. */
+    .register-card {
+      max-width: 980px;
+      padding: 24px;
+      border-radius: 22px;
+      box-shadow: 0 18px 50px rgba(31, 41, 55, 0.08);
+      max-height: calc(100vh - 260px);
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #c7cfda transparent;
+    }
+
+    .register-card::-webkit-scrollbar,
+    .register-modal::-webkit-scrollbar,
+    .content-screen::-webkit-scrollbar,
+    .chat-users::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .register-card::-webkit-scrollbar-track,
+    .register-modal::-webkit-scrollbar-track,
+    .content-screen::-webkit-scrollbar-track,
+    .chat-users::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .register-card::-webkit-scrollbar-thumb,
+    .register-modal::-webkit-scrollbar-thumb,
+    .content-screen::-webkit-scrollbar-thumb,
+    .chat-users::-webkit-scrollbar-thumb {
+      background: #c7cfda;
+      border-radius: 999px;
+    }
+
+    .register-layout {
+      display: grid;
+      grid-template-columns: 190px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .register-form-area {
+      min-width: 0;
+    }
+
+    .login-auto-info {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .login-auto-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #536170;
+      margin-bottom: 8px;
+    }
+
+    .login-auto-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      padding: 0 9px;
+      border-radius: 999px;
+      background: #eef1ff;
+      color: var(--primary-dark);
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .login-auto-text {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      margin: 0;
+    }
+
+    .avatar-upload-box {
+      border: 1px dashed #cfd7e2;
+      border-radius: 18px;
+      padding: 18px;
+      background: #f8fafc;
+      text-align: center;
+    }
+
+    .avatar-preview {
+      width: 104px;
+      height: 104px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #eef1ff, #e8edf5);
+      margin: 0 auto 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      font-size: 34px;
+      font-weight: 900;
+      overflow: hidden;
+      border: 4px solid #fff;
+      box-shadow: 0 12px 28px rgba(31, 41, 55, 0.10);
+    }
+
+    .avatar-upload-box input[type="file"] {
+      display: none;
+    }
+
+    .avatar-upload-label {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 36px;
+      padding: 0 12px;
+      border-radius: 10px;
+      background: #eef1ff;
+      color: var(--primary-dark);
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+
+    .avatar-note,
+    .field-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      margin-top: 8px;
+    }
+
+    .register-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px 16px;
+    }
+
+    .register-form-grid .full-width {
+      grid-column: 1 / 3;
+    }
+
+    .optional-mark {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .screen-card label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin: 12px 0 6px;
+      color: #536170;
+    }
+
+    .screen-card input,
+    .screen-card select {
+      width: 100%;
+      height: 42px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0 12px;
+      outline: none;
+      background: #fff;
+    }
+
+    .screen-card input:focus,
+    .screen-card select:focus {
+      border-color: var(--primary);
+    }
+
+    .screen-actions {
+      margin-top: 18px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .small-button {
+      background: var(--primary);
+      color: white;
+      min-height: 40px;
+      padding: 0 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .small-button.secondary {
+      background: #eef2f6;
+      color: var(--text);
+    }
+
+    .small-button.danger {
+      background: var(--danger);
+    }
+
+    .file-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid #edf1f5;
+    }
+
+    .file-row:last-child {
+      border-bottom: none;
+    }
+
+    .file-row strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .file-row span {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .file-meta-line {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .file-direction-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: #eef1ff;
+      color: var(--primary-dark);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .file-direction-badge.received {
+      background: #ecfdf5;
+      color: #047857;
+    }
+
+    .file-direction-badge.sent {
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    .file-contact-note {
+      color: #536170;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .file-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .icon-action-btn {
+      width: 42px;
+      height: 42px;
+      border: 1px solid #d8e0ea;
+      border-radius: 12px;
+      background: #f8fafc;
+      color: #334155;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: 0.18s ease;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+    }
+
+    .icon-action-btn:hover {
+      transform: translateY(-1px);
+      background: #eef2ff;
+      border-color: #c7d2fe;
+      color: #4f46e5;
+    }
+
+    .icon-action-btn svg {
+      width: 19px;
+      height: 19px;
+      stroke: currentColor;
+    }
+
+    .icon-action-btn.open:hover {
+      color: #4f46e5;
+    }
+
+    .icon-action-btn.download:hover {
+      color: #0f766e;
+      background: #ecfeff;
+      border-color: #99f6e4;
+    }
+
+    .icon-action-btn.share:hover {
+      color: #9333ea;
+      background: #faf5ff;
+      border-color: #e9d5ff;
+    }
+
+    /* Основна картка екрана контактів. */
+    .contacts-card {
+      max-width: 920px;
+      padding: 22px;
+      border-radius: 20px;
+      box-shadow: 0 18px 50px rgba(31, 41, 55, 0.07);
+    }
+
+    /* Блок додавання контакту за унікальним номером користувача. */
+    .contacts-add-box {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: end;
+      padding: 16px;
+      border: 1px solid #e1e7ef;
+      border-radius: 16px;
+      background: #f8fafc;
+      margin-bottom: 18px;
+    }
+
+    .contacts-add-box label {
+      margin-top: 0;
+    }
+
+    .contact-id-hint {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .contacts-list-title {
+      font-size: 13px;
+      font-weight: 900;
+      color: #536170;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 16px 0 8px;
+    }
+
+    /* Список доданих контактів користувача. */
+    .contact-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Один рядок контакту в адресній книзі. */
+    .contact-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid #edf1f5;
+      border-radius: 16px;
+      background: #fff;
+      transition: 0.18s ease;
+    }
+
+    .contact-row:hover {
+      border-color: #d8def8;
+      background: #fbfcff;
+      transform: translateY(-1px);
+    }
+
+    .contact-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #eef1ff;
+      color: var(--primary-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      overflow: hidden;
+    }
+
+    .contact-main strong {
+      display: block;
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    .contact-main span {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .contact-status-line {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #536170;
+      font-weight: 700;
+    }
+
+    .contact-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #b7c0cb;
+    }
+
+    .contact-status-dot.online {
+      background: var(--success);
+    }
+
+    /* Група кнопок дій біля контакту: перегляд, поділитися, написати. */
+    .contact-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    /* Іконкова кнопка дії в картці контакту. */
+    .contact-icon-btn {
+      width: 42px;
+      height: 42px;
+      border: 1px solid #d8e0ea;
+      border-radius: 12px;
+      background: #f8fafc;
+      color: #334155;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: 0.18s ease;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+      position: relative;
+    }
+
+    .contact-icon-btn:hover {
+      transform: translateY(-1px);
+      background: #eef2ff;
+      border-color: #c7d2fe;
+      color: #4f46e5;
+    }
+
+    .contact-icon-btn svg {
+      width: 19px;
+      height: 19px;
+      stroke: currentColor;
+    }
+
+    .contact-icon-btn.view:hover {
+      color: #4f46e5;
+    }
+
+    .contact-icon-btn.share:hover {
+      color: #9333ea;
+      background: #faf5ff;
+      border-color: #e9d5ff;
+    }
+
+    .contact-icon-btn.write:hover {
+      color: #0f766e;
+      background: #ecfeff;
+      border-color: #99f6e4;
+    }
+
+    .contact-icon-btn::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 10px);
+      transform: translateX(-50%) translateY(4px);
+      background: #1f2937;
+      color: #fff;
+      padding: 7px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: 0.16s ease;
+      z-index: 20;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+    }
+
+    .contact-icon-btn::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 4px);
+      transform: translateX(-50%) translateY(4px);
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 6px solid #1f2937;
+      opacity: 0;
+      pointer-events: none;
+      transition: 0.16s ease;
+      z-index: 20;
+    }
+
+    .contact-icon-btn:hover::after,
+    .contact-icon-btn:hover::before {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Екран картки контакту з деталями: номер, статус, вік, email, телефон. */
+    .contact-profile-card {
+      max-width: 720px;
+      padding: 24px;
+      border-radius: 22px;
+      box-shadow: 0 18px 50px rgba(31, 41, 55, 0.08);
+    }
+
+    .contact-profile-head {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .contact-profile-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #eef1ff;
+      color: var(--primary-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 900;
+    }
+
+    .contact-profile-meta strong {
+      display: block;
+      font-size: 22px;
+      margin-bottom: 4px;
+    }
+
+    .contact-profile-meta span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .contact-profile-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .contact-profile-field {
+      background: #f8fafc;
+      border: 1px solid #edf1f5;
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .contact-profile-field small {
+      display: block;
+      color: var(--muted);
+      font-weight: 800;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 11px;
+    }
+
+    .contact-profile-field span {
+      color: var(--text);
+      font-weight: 800;
+    }
+
+    /* Екран створення групового чату та керування учасниками кімнати. */
+    .group-chat-card {
+      max-width: 980px;
+      padding: 22px;
+      border-radius: 20px;
+      box-shadow: 0 18px 50px rgba(31, 41, 55, 0.07);
+    }
+
+    /* Двоколонковий макет: контакти зліва, учасники кімнати справа. */
+    .group-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .group-panel {
+      border: 1px solid #edf1f5;
+      border-radius: 16px;
+      background: #f8fafc;
+      padding: 14px;
+    }
+
+    .group-panel h3 {
+      font-size: 15px;
+      margin-bottom: 10px;
+      color: #334155;
+    }
+
+    .group-room-name {
+      margin-bottom: 14px;
+    }
+
+    /* Прокручувані списки контактів і учасників групової кімнати. */
+    .group-contact-list,
+    .group-member-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 310px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .group-contact-item,
+    .group-member-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid #edf1f5;
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    .group-contact-item strong,
+    .group-member-item strong {
+      display: block;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .group-contact-item span,
+    .group-member-item span {
+      display: block;
+      margin-top: 2px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .mini-icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: #eef1ff;
+      color: var(--primary-dark);
+      cursor: pointer;
+      font-size: 20px;
+      font-weight: 900;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.18s ease;
+    }
+
+    .mini-icon-btn:hover {
+      transform: translateY(-1px);
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .mini-icon-btn.remove {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .mini-icon-btn.remove:hover {
+      background: #dc2626;
+      color: #fff;
+    }
+
+    .group-created-box {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid #d8def8;
+      background: #fbfcff;
+    }
+
+    .group-created-box strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .group-created-box span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    /* Дерева створених групових і приватних чатів у sidebar. */
+    .group-room-tree,
+    .private-chat-tree {
+      list-style: none;
+      margin: 4px 0 4px 32px;
+      padding-left: 10px;
+      border-left: 2px solid #eef2f6;
+      display: none;
+    }
+
+    .menu-group.open .group-room-tree:not(:empty),
+    .menu-group.open .private-chat-tree:not(:empty) {
+      display: block;
+    }
+
+    .group-room-link,
+    .private-chat-link {
+      padding: 8px 10px;
+      border-radius: 8px;
+      margin-bottom: 3px;
+      cursor: pointer;
+      color: #536170;
+      font-size: 13px;
+      transition: 0.18s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .group-room-link:hover,
+    .group-room-link.active,
+    .private-chat-link:hover,
+    .private-chat-link.active {
+      background: #f0efff;
+      color: var(--primary);
+    }
+
+    .group-room-link small,
+    .private-chat-link small {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Пункт меню з додатковою кнопкою дії, наприклад '+' для створення чату. */
+    .menu-item-with-action {
+      gap: 8px;
+    }
+
+    .menu-item-label {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* Кнопка '+' для створення нового групового або приватного чату. */
+    .new-chat-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: #eef1ff;
+      color: var(--primary-dark);
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 900;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.18s ease;
+      flex-shrink: 0;
+    }
+
+    .new-chat-btn:hover {
+      background: var(--primary);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    /* Кнопка згортання/розгортання дерева чатів. */
+    .tree-toggle-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 900;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.18s ease;
+      flex-shrink: 0;
+    }
+
+    .tree-toggle-btn:hover {
+      background: #eef1ff;
+      color: var(--primary-dark);
+    }
+
+    .group-room-tree.collapsed,
+    .private-chat-tree.collapsed {
+      display: none !important;
+    }
+
+    .group-room-link,
+    .private-chat-link {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .tree-link-main {
+      min-width: 0;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .tree-link-main span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Кнопка видалення чату з дерева навігації. */
+    .tree-delete-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: #fee2e2;
+      color: #b91c1c;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.78;
+      transition: 0.18s ease;
+      flex-shrink: 0;
+    }
+
+    .tree-delete-btn:hover {
+      opacity: 1;
+      background: #dc2626;
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .tree-delete-btn svg {
+      width: 15px;
+      height: 15px;
+      stroke: currentColor;
+    }
+
+    .private-chat-tree {
+      list-style: none;
+      margin: 4px 0 4px 32px;
+      padding-left: 10px;
+      border-left: 2px solid #eef2f6;
+      display: none;
+    }
+
+    .menu-group.open .private-chat-tree:not(:empty) {
+      display: block;
+    }
+
+    .private-chat-link {
+      padding: 8px 10px;
+      border-radius: 8px;
+      margin-bottom: 3px;
+      cursor: pointer;
+      color: #536170;
+      font-size: 13px;
+      transition: 0.18s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .private-chat-link:hover,
+    .private-chat-link.active {
+      background: #f0efff;
+      color: var(--primary);
+    }
+
+    .private-chat-link small {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Екран списку приватних чатів або вибору контакту для нового приватного чату. */
+    .private-chat-card {
+      max-width: 920px;
+      padding: 22px;
+      border-radius: 20px;
+      box-shadow: 0 18px 50px rgba(31, 41, 55, 0.07);
+    }
+
+    .private-chat-contact-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    /* Рядок контакту або приватного діалогу на екрані 'Чати'. */
+    .private-chat-contact-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid #edf1f5;
+      border-radius: 16px;
+      background: #fff;
+      transition: 0.18s ease;
+    }
+
+    .private-chat-contact-row:hover {
+      border-color: #d8def8;
+      background: #fbfcff;
+      transform: translateY(-1px);
+    }
+
+    /* Розділювач повідомлень за датою в чаті. */
+    .day-divider {
+      align-self: center;
+      color: var(--muted);
+      font-size: 12px;
+      background: #eef2f6;
+      padding: 6px 12px;
+      border-radius: 999px;
+      margin: 4px 0 10px;
+    }
+
+    /* Рядок повідомлення: вирівнює вхідні ліворуч, вихідні праворуч. */
+    .message-row {
+      display: flex;
+      width: 100%;
+    }
+
+    .message-row.incoming {
+      justify-content: flex-start;
+    }
+
+    .message-row.outgoing {
+      justify-content: flex-end;
+    }
+
+    /* Базовий стиль повідомлення в чаті. */
+    .message {
+      max-width: min(560px, 76%);
+      padding: 12px 14px;
+      border-radius: 16px;
+      position: relative;
+      line-height: 1.45;
+      font-size: 14px;
+      word-wrap: break-word;
+    }
+
+    .message.incoming {
+      background: var(--message-in);
+      color: var(--text);
+      border-bottom-left-radius: 5px;
+    }
+
+    .message.outgoing {
+      background: var(--message-out);
+      color: white;
+      border-bottom-right-radius: 5px;
+    }
+
+    .message-meta {
+      display: block;
+      margin-top: 6px;
+      font-size: 10px;
+      opacity: 0.72;
+      text-align: right;
+    }
+
+    /* Нижня панель введення повідомлення, додавання файлу та відправки. */
+    .input-area {
+      border-top: 1px solid var(--border);
+      background: #fff;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px 16px;
+    }
+
+    /* Кнопки нижньої панелі: додати файл і відправити повідомлення. */
+    .file-btn,
+    .send-btn {
+      background: var(--primary);
+      color: white;
+      height: 42px;
+      padding: 0 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 14px;
+      transition: 0.18s ease;
+    }
+
+    .file-btn:hover,
+    .send-btn:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    /* Поле введення текстового повідомлення. */
+    .message-input {
+      width: 100%;
+      height: 42px;
+      border: 1px solid transparent;
+      background: #f4f6f9;
+      padding: 0 14px;
+      border-radius: 6px;
+      outline: none;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .message-input:focus {
+      border-color: var(--primary);
+      background: #fff;
+    }
+
+    /* Нижній службовий рядок із версією, ліцензією та технологіями. */
+    .footer {
+      grid-column: 1 / 3;
+      grid-row: 3 / 4;
+      border-top: 1px solid var(--border);
+      background: var(--panel-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #475569;
+      font-size: 14px;
+      padding: 0 20px;
+      text-align: center;
+    }
+
+    /* Адаптивні стилі для планшетів і малих екранів. */
+    @media (max-width: 820px) {
+      body {
+        padding: 0;
+      }
+
+      .start-page {
+        width: 100%;
+        height: 100vh;
+        border: none;
+        border-radius: 0;
+      }
+
+      .start-top {
+        padding: 18px 14px;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .language-select {
+        width: 170px;
+      }
+
+      .hero-area {
+        width: calc(100% - 28px);
+        margin-top: 42px;
+      }
+
+      .start-logo .logo-line-1 {
+        font-size: 26px;
+      }
+
+      .start-logo .logo-line-2 {
+        font-size: 22px;
+        margin-left: 60px;
+      }
+
+      .start-subtitle {
+        font-size: 12px;
+        margin-bottom: 22px;
+      }
+
+      .auth-box {
+        width: 100%;
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 20px;
+      }
+
+      .auth-hint {
+        grid-column: 1 / 2;
+      }
+
+      .auth-actions {
+        gap: 10px;
+      }
+
+      .register-modal-backdrop {
+        padding: 12px;
+      }
+
+      .register-modal {
+        border-radius: 20px;
+        padding: 18px;
+      }
+
+      .start-register-card .register-layout,
+      .register-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .register-form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .register-form-grid .full-width {
+        grid-column: 1 / 2;
+      }
+
+      .register-card {
+        max-height: calc(100vh - 220px);
+      }
+
+      .app-shell {
+        width: 100%;
+        height: 100vh;
+        grid-template-columns: 1fr;
+        grid-template-rows: 58px 220px 1fr 52px;
+        border: none;
+      }
+
+      .brand {
+        grid-column: 1 / 2;
+        grid-row: 1 / 2;
+        border-right: none;
+      }
+
+      .topbar {
+        display: none;
+      }
+
+      .sidebar {
+        grid-column: 1 / 2;
+        grid-row: 2 / 3;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        overflow-y: auto;
+      }
+
+      .menu-title:nth-of-type(2),
+      .chat-users {
+        display: none;
+      }
+
+      .main {
+        grid-column: 1 / 2;
+        grid-row: 3 / 4;
+      }
+
+      .chat-window,
+      .content-screen {
+        padding: 14px;
+      }
+
+      .message {
+        max-width: 88%;
+      }
+
+      .input-area {
+        grid-template-columns: 1fr auto;
+      }
+
+      .file-btn {
+        display: none;
+      }
+
+      .contacts-add-box,
+      .contact-row {
+        grid-template-columns: 1fr;
+      }
+
+      .contact-actions {
+        justify-content: flex-start;
+      }
+
+      .contact-icon-btn {
+        width: 40px;
+        height: 40px;
+      }
+
+      .contact-profile-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .group-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .group-contact-item,
+      .group-member-item {
+        grid-template-columns: auto 1fr auto;
+      }
+
+      .private-chat-contact-row {
+        grid-template-columns: auto 1fr;
+      }
+
+      .private-chat-contact-row .small-button {
+        grid-column: 1 / 3;
+      }
+
+      .file-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .file-actions {
+        justify-content: flex-start;
+      }
+
+      .footer {
+        grid-column: 1 / 2;
+        grid-row: 4 / 5;
+        font-size: 12px;
+      }
+    }
+  
+    /* Нижче — окремий блок стилів для сучасної панелі введення з іконками. */
+    /* =========================
+       MODERN COMPOSE BAR — icons + alignment
+       ========================= */
+
+    .main {
+      grid-template-rows: minmax(0, 1fr) auto;
+    }
+
+    .input-area {
+      height: auto;
+      min-height: 76px;
+      margin: 0 22px 18px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr) 52px;
+      align-items: center;
+      gap: 10px;
+      border-radius: 28px;
+    }
+
+    .message-input {
+      height: 52px;
+      min-width: 0;
+      line-height: 52px;
+      border-radius: 18px;
+      padding: 0 18px;
+      align-self: center;
+    }
+
+    .file-btn.icon-compose-btn,
+    .send-btn.icon-compose-btn {
+      width: 52px;
+      height: 52px;
+      min-width: 52px;
+      padding: 0;
+      border-radius: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      align-self: center;
+    }
+
+    .icon-compose-btn svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .file-btn.icon-compose-btn {
+      background: rgba(238, 241, 255, 0.96);
+      color: var(--primary-dark);
+      box-shadow: inset 0 0 0 1px rgba(99, 91, 255, 0.12), 0 10px 24px rgba(15, 23, 42, 0.07);
+    }
+
+    .file-btn.icon-compose-btn:hover {
+      background: rgba(99, 91, 255, 0.12);
+      color: var(--primary-dark);
+    }
+
+    .send-btn.icon-compose-btn {
+      background: linear-gradient(135deg, #635bff 0%, #7c3aed 100%);
+      color: #fff;
+      box-shadow: 0 14px 30px rgba(99, 91, 255, 0.28);
+    }
+
+    .send-btn.icon-compose-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 38px rgba(99, 91, 255, 0.34);
+    }
+
+    @media (max-width: 820px) {
+      .input-area {
+        margin: 0 12px 12px;
+        grid-template-columns: 48px minmax(0, 1fr) 48px;
+        min-height: 68px;
+        padding: 8px;
+      }
+
+      .file-btn.icon-compose-btn {
+        display: inline-flex;
+      }
+
+      .file-btn.icon-compose-btn,
+      .send-btn.icon-compose-btn {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        border-radius: 16px;
+      }
+
+      .message-input {
+        height: 48px;
+        line-height: 48px;
+      }
+    }
+
+  
+    /* Нижче — блок, який прибирає фіксований розмір вікна і розтягує застосунок на весь браузер. */
+    /* =========================
+       RESPONSIVE FULLSCREEN FIX — v4
+       Убирает жестко заданное окно приложения.
+       Интерфейс теперь занимает весь размер браузера.
+       ========================= */
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    body {
+      padding: 0 !important;
+      display: block;
+      background:
+        radial-gradient(circle at 12% 12%, rgba(99, 91, 255, 0.10), transparent 30%),
+        radial-gradient(circle at 88% 18%, rgba(16, 185, 129, 0.08), transparent 28%),
+        linear-gradient(135deg, #edf2f7 0%, #f8fafc 100%);
+    }
+
+    .start-page,
+    .app-shell {
+      width: 100vw !important;
+      height: 100dvh !important;
+      max-width: none !important;
+      max-height: none !important;
+      min-width: 0 !important;
+      min-height: 0 !important;
+      border-radius: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    .app-shell {
+      grid-template-columns: clamp(250px, 22vw, 330px) minmax(0, 1fr) !important;
+      grid-template-rows: 72px minmax(0, 1fr) 58px !important;
+    }
+
+    .brand,
+    .topbar,
+    .sidebar,
+    .main,
+    .footer {
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .topbar {
+      min-height: 72px;
+    }
+
+    .sidebar {
+      overflow: hidden;
+    }
+
+    .menu-list {
+      overflow-y: auto;
+      overflow-x: hidden;
+      flex-shrink: 0;
+      max-height: 48%;
+    }
+
+    .chat-users {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .main {
+      overflow: hidden;
+      grid-template-rows: minmax(0, 1fr) auto !important;
+    }
+
+    .chat-window,
+    .content-screen {
+      min-height: 0;
+      max-height: none !important;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .chat-window {
+      padding: clamp(18px, 2.2vw, 34px) !important;
+    }
+
+    .content-screen {
+      padding: clamp(18px, 2.2vw, 34px) !important;
+      padding-bottom: 110px !important;
+    }
+
+    .message {
+      max-width: min(720px, 74%) !important;
+    }
+
+    .input-area {
+      margin: 0 clamp(14px, 1.8vw, 24px) clamp(12px, 1.6vw, 18px) !important;
+      width: auto !important;
+      min-width: 0;
+      grid-template-columns: 52px minmax(0, 1fr) 52px !important;
+    }
+
+    .message-input {
+      min-width: 0;
+      width: 100%;
+    }
+
+    .screen-card,
+    .contacts-card,
+    .group-chat-card,
+    .private-chat-card,
+    .register-card {
+      max-width: min(1120px, 100%) !important;
+      width: 100%;
+    }
+
+    .contact-profile-card {
+      max-width: min(820px, 100%) !important;
+    }
+
+    .group-layout {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .start-page {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .hero-area {
+      width: min(760px, calc(100% - 32px)) !important;
+      margin-top: clamp(32px, 7vh, 72px) !important;
+    }
+
+    @media (min-width: 1500px) {
+      .app-shell {
+        grid-template-columns: 340px minmax(0, 1fr) !important;
+      }
+
+      .message {
+        max-width: min(820px, 70%) !important;
+      }
+
+      .chat-window {
+        padding-left: clamp(34px, 4vw, 72px) !important;
+        padding-right: clamp(34px, 4vw, 72px) !important;
+      }
+    }
+
+    @media (max-width: 1100px) {
+      .app-shell {
+        grid-template-columns: 250px minmax(0, 1fr) !important;
+      }
+
+      .message {
+        max-width: 82% !important;
+      }
+
+      .footer {
+        font-size: 12px;
+      }
+    }
+
+    @media (max-width: 820px) {
+      html,
+      body {
+        overflow: hidden;
+      }
+
+      .app-shell {
+        width: 100vw !important;
+        height: 100dvh !important;
+        grid-template-columns: 1fr !important;
+        grid-template-rows: 58px 220px minmax(0, 1fr) 52px !important;
+      }
+
+      .brand {
+        grid-column: 1 / 2 !important;
+        grid-row: 1 / 2 !important;
+      }
+
+      .sidebar {
+        grid-column: 1 / 2 !important;
+        grid-row: 2 / 3 !important;
+        overflow-y: auto !important;
+      }
+
+      .main {
+        grid-column: 1 / 2 !important;
+        grid-row: 3 / 4 !important;
+      }
+
+      .footer {
+        grid-column: 1 / 2 !important;
+        grid-row: 4 / 5 !important;
+      }
+
+      .input-area {
+        grid-template-columns: 48px minmax(0, 1fr) 48px !important;
+        margin: 0 10px 10px !important;
+        padding: 8px !important;
+        min-height: 64px !important;
+      }
+
+      .message {
+        max-width: 90% !important;
+      }
+
+      .group-layout {
+        grid-template-columns: 1fr !important;
+      }
+    }
+
+    /* Додаткова адаптація для дуже вузьких екранів. */
+    @media (max-width: 560px) {
+      .app-shell {
+        grid-template-rows: 54px 190px minmax(0, 1fr) 50px !important;
+      }
+
+      .brand span:first-child {
+        font-size: 16px;
+      }
+
+      .brand span:last-child {
+        font-size: 12px;
+      }
+
+      .chat-window,
+      .content-screen {
+        padding: 14px !important;
+      }
+
+      .message {
+        max-width: 94% !important;
+        font-size: 14px;
+      }
+
+      .input-area {
+        grid-template-columns: 44px minmax(0, 1fr) 44px !important;
+      }
+
+      .file-btn.icon-compose-btn,
+      .send-btn.icon-compose-btn {
+        width: 44px !important;
+        height: 44px !important;
+        min-width: 44px !important;
+      }
+
+      .message-input {
+        height: 44px !important;
+        line-height: 44px !important;
+      }
+    }
+
+  
+    /* Нижче — професійний дизайн-шар: фінальні розміри, кольори, типографіка та сітка. */
+    /* =========================================================
+       PRO DESIGN SYSTEM — v5
+       Professional messenger scale: 8px grid, 44px controls,
+       14/20 body text, restrained surfaces, desktop-first layout.
+       ========================================================= */
+
+    :root {
+      --bg: #f4f6f8;
+      --surface: #ffffff;
+      --surface-2: #f8fafc;
+      --surface-3: #f1f5f9;
+      --border: #d7dee8;
+      --border-strong: #c5cfdc;
+      --text: #17212b;
+      --text-2: #334155;
+      --muted: #667085;
+      --muted-2: #8a94a6;
+      --primary: #4f46e5;
+      --primary-dark: #4338ca;
+      --primary-soft: #eef2ff;
+      --danger: #dc2626;
+      --danger-soft: #fee2e2;
+      --success: #16a34a;
+      --radius-sm: 8px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-xl: 18px;
+      --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.06);
+      --shadow-sm: 0 4px 12px rgba(16, 24, 40, 0.07);
+      --sidebar-w: clamp(280px, 21vw, 320px);
+      --topbar-h: 64px;
+      --footer-h: 44px;
+      --composer-h: 72px;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg) !important;
+      color: var(--text);
+      font-family: Inter, "Segoe UI Variable", "Segoe UI", Roboto, system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;
+      font-size: 14px;
+      line-height: 1.43;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    body {
+      display: block !important;
+      padding: 0 !important;
+    }
+
+    * { box-sizing: border-box; }
+    button, input, select { font: inherit; }
+    button { border: 0; }
+
+    .start-page,
+    .app-shell {
+      width: 100vw !important;
+      height: 100dvh !important;
+      max-width: none !important;
+      max-height: none !important;
+      min-width: 0 !important;
+      min-height: 0 !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      background: var(--surface) !important;
+    }
+
+    .app-shell {
+      display: grid !important;
+      grid-template-columns: var(--sidebar-w) minmax(0, 1fr) !important;
+      grid-template-rows: var(--topbar-h) minmax(0, 1fr) var(--footer-h) !important;
+      overflow: hidden !important;
+    }
+
+    .brand {
+      height: var(--topbar-h) !important;
+      background: var(--surface) !important;
+      border-right: 1px solid var(--border) !important;
+      border-bottom: 1px solid var(--border) !important;
+      color: var(--primary) !important;
+      text-shadow: none !important;
+      letter-spacing: 2px !important;
+    }
+
+    .brand span:first-child { font-size: 18px !important; line-height: 20px; }
+    .brand span:last-child { font-size: 13px !important; line-height: 16px; }
+
+    .topbar {
+      height: var(--topbar-h) !important;
+      min-height: var(--topbar-h) !important;
+      padding: 0 24px !important;
+      background: var(--surface) !important;
+      border-bottom: 1px solid var(--border) !important;
+    }
+
+    .topbar-title strong {
+      font-size: 16px !important;
+      line-height: 22px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .topbar-title span {
+      font-size: 13px !important;
+      line-height: 18px;
+      color: var(--muted) !important;
+    }
+
+    .profile-box {
+      gap: 10px !important;
+      font-size: 14px !important;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .profile-avatar {
+      width: 40px !important;
+      height: 40px !important;
+      background: var(--surface-3) !important;
+      color: var(--primary) !important;
+      box-shadow: none !important;
+    }
+
+    .sidebar {
+      min-width: 0;
+      min-height: 0;
+      background: var(--surface) !important;
+      border-right: 1px solid var(--border) !important;
+      overflow: hidden !important;
+    }
+
+    .menu-title,
+    .online-users-header {
+      padding: 14px 20px 8px !important;
+      font-size: 11px !important;
+      line-height: 16px;
+      font-weight: 700;
+      color: var(--muted-2) !important;
+      letter-spacing: 0.08em;
+    }
+
+    .menu-list {
+      padding: 0 12px 12px !important;
+      overflow-y: auto;
+      overflow-x: hidden;
+      flex: 0 0 auto;
+      max-height: 48%;
+    }
+
+    .menu-parent {
+      min-height: 40px;
+      padding: 8px 12px !important;
+      border-radius: var(--radius-md) !important;
+      color: var(--text-2) !important;
+      font-size: 14px !important;
+      line-height: 20px;
+      font-weight: 700;
+      background: transparent !important;
+    }
+
+    .menu-parent:hover,
+    .menu-parent.active,
+    .menu-item:hover,
+    .menu-item.active {
+      background: var(--primary-soft) !important;
+      color: var(--primary) !important;
+      box-shadow: none !important;
+    }
+
+    .submenu {
+      margin: 4px 0 8px 20px !important;
+      padding-left: 10px !important;
+      border-left: 1px solid var(--border) !important;
+    }
+
+    .menu-item {
+      min-height: 36px;
+      padding: 7px 10px !important;
+      border-radius: var(--radius-sm) !important;
+      margin-bottom: 2px !important;
+      color: var(--text-2) !important;
+      font-size: 14px !important;
+      line-height: 20px;
+      font-weight: 500;
+    }
+
+    .badge,
+    .online-count-badge {
+      min-width: 22px !important;
+      height: 22px !important;
+      padding: 0 7px !important;
+      font-size: 11px !important;
+      font-weight: 700;
+      box-shadow: none !important;
+    }
+
+    .new-chat-btn,
+    .tree-toggle-btn {
+      width: 28px !important;
+      height: 28px !important;
+      border-radius: var(--radius-sm) !important;
+      background: transparent !important;
+      color: var(--muted) !important;
+      box-shadow: none !important;
+      font-size: 16px !important;
+      font-weight: 700;
+    }
+
+    .new-chat-btn:hover,
+    .tree-toggle-btn:hover {
+      background: var(--surface-3) !important;
+      color: var(--primary) !important;
+      transform: none !important;
+    }
+
+    .group-room-tree,
+    .private-chat-tree {
+      margin: 2px 0 6px 28px !important;
+      padding-left: 10px !important;
+      border-left: 1px solid var(--border) !important;
+    }
+
+    .group-room-link,
+    .private-chat-link {
+      min-height: 40px;
+      padding: 7px 8px !important;
+      border-radius: var(--radius-sm) !important;
+      margin-bottom: 3px !important;
+      background: transparent !important;
+      border: 0 !important;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 28px !important;
+      gap: 6px !important;
+      align-items: center;
+    }
+
+    .group-room-link:hover,
+    .group-room-link.active,
+    .private-chat-link:hover,
+    .private-chat-link.active {
+      background: var(--primary-soft) !important;
+      color: var(--primary) !important;
+    }
+
+    .tree-link-main span {
+      font-size: 13px !important;
+      line-height: 18px;
+      font-weight: 600;
+    }
+
+    .tree-link-main small,
+    .group-room-link small,
+    .private-chat-link small {
+      font-size: 11px !important;
+      line-height: 15px;
+      color: var(--muted) !important;
+    }
+
+    .tree-delete-btn {
+      width: 28px !important;
+      height: 28px !important;
+      border-radius: var(--radius-sm) !important;
+      background: transparent !important;
+      color: var(--muted-2) !important;
+      opacity: 1 !important;
+      box-shadow: none !important;
+    }
+
+    .tree-delete-btn:hover {
+      background: var(--danger-soft) !important;
+      color: var(--danger) !important;
+      transform: none !important;
+    }
+
+    .online-users-header {
+      border-top: 1px solid var(--border) !important;
+    }
+
+    .chat-users {
+      padding: 0 12px 12px !important;
+      min-height: 0;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .user-card {
+      min-height: 56px;
+      margin: 0 0 6px !important;
+      padding: 8px 10px !important;
+      border-radius: var(--radius-md) !important;
+      background: transparent !important;
+      border: 1px solid transparent !important;
+      gap: 10px !important;
+      transform: none !important;
+    }
+
+    .user-card:hover,
+    .user-card.active {
+      background: var(--surface-2) !important;
+      border-color: var(--border) !important;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    .user-avatar,
+    .contact-avatar {
+      width: 36px !important;
+      height: 36px !important;
+      background: var(--surface-3) !important;
+      color: var(--text-2) !important;
+      box-shadow: none !important;
+      font-size: 13px !important;
+      font-weight: 700;
+    }
+
+    .user-info strong {
+      font-size: 14px !important;
+      line-height: 18px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .user-info span {
+      font-size: 12px !important;
+      line-height: 16px;
+      color: var(--muted);
+    }
+
+    .status-dot,
+    .contact-status-dot {
+      width: 8px !important;
+      height: 8px !important;
+      box-shadow: none !important;
+      background: #cbd5e1;
+    }
+
+    .status-dot.online,
+    .contact-status-dot.online {
+      background: var(--success) !important;
+    }
+
+    .main {
+      min-width: 0;
+      min-height: 0;
+      display: grid !important;
+      grid-template-rows: minmax(0, 1fr) var(--composer-h) !important;
+      background: var(--bg) !important;
+      overflow: hidden !important;
+    }
+
+    .chat-window,
+    .content-screen {
+      min-height: 0;
+      max-height: none !important;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 24px 32px !important;
+    }
+
+    .chat-window {
+      display: flex;
+      flex-direction: column;
+      gap: 8px !important;
+    }
+
+    .day-divider {
+      align-self: center;
+      min-height: 28px;
+      padding: 5px 12px !important;
+      margin: 0 0 14px !important;
+      border-radius: 999px !important;
+      background: var(--surface) !important;
+      border: 1px solid var(--border) !important;
+      color: var(--muted) !important;
+      font-size: 12px !important;
+      line-height: 16px;
+      box-shadow: none !important;
+    }
+
+    .message {
+      max-width: min(680px, 72%) !important;
+      padding: 10px 12px !important;
+      border-radius: 14px !important;
+      font-size: 14px !important;
+      line-height: 20px !important;
+      box-shadow: var(--shadow-xs) !important;
+      border: 1px solid var(--border);
+    }
+
+    .message.incoming {
+      background: var(--surface) !important;
+      color: var(--text) !important;
+      border-bottom-left-radius: 4px !important;
+    }
+
+    .message.outgoing {
+      background: var(--primary) !important;
+      color: #fff !important;
+      border-color: transparent !important;
+      border-bottom-right-radius: 4px !important;
+      box-shadow: var(--shadow-sm) !important;
+    }
+
+    .message-meta {
+      margin-top: 4px !important;
+      font-size: 11px !important;
+      line-height: 14px;
+      opacity: 0.72;
+    }
+
+    .input-area {
+      height: var(--composer-h) !important;
+      min-height: var(--composer-h) !important;
+      margin: 0 !important;
+      padding: 10px 24px !important;
+      border-radius: 0 !important;
+      border-top: 1px solid var(--border) !important;
+      background: var(--surface) !important;
+      box-shadow: none !important;
+      display: grid !important;
+      grid-template-columns: 44px minmax(0, 1fr) 44px !important;
+      align-items: center;
+      gap: 10px !important;
+      width: 100% !important;
+    }
+
+    .message-input {
+      height: 44px !important;
+      line-height: 44px !important;
+      width: 100%;
+      min-width: 0;
+      border-radius: var(--radius-lg) !important;
+      border: 1px solid var(--border) !important;
+      background: var(--surface-2) !important;
+      padding: 0 16px !important;
+      font-size: 14px !important;
+      color: var(--text) !important;
+      box-shadow: none !important;
+    }
+
+    .message-input:focus {
+      background: var(--surface) !important;
+      border-color: var(--primary) !important;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12) !important;
+    }
+
+    .file-btn,
+    .send-btn,
+    .file-btn.icon-compose-btn,
+    .send-btn.icon-compose-btn {
+      width: 44px !important;
+      height: 44px !important;
+      min-width: 44px !important;
+      padding: 0 !important;
+      border-radius: var(--radius-lg) !important;
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    .file-btn,
+    .file-btn.icon-compose-btn {
+      background: var(--surface-2) !important;
+      color: var(--text-2) !important;
+      border: 1px solid var(--border) !important;
+    }
+
+    .file-btn:hover,
+    .file-btn.icon-compose-btn:hover {
+      background: var(--primary-soft) !important;
+      color: var(--primary) !important;
+      border-color: #c7d2fe !important;
+    }
+
+    .send-btn,
+    .send-btn.icon-compose-btn {
+      background: var(--primary) !important;
+      color: #fff !important;
+      border: 1px solid var(--primary) !important;
+    }
+
+    .send-btn:hover,
+    .send-btn.icon-compose-btn:hover {
+      background: var(--primary-dark) !important;
+      border-color: var(--primary-dark) !important;
+    }
+
+    .icon-compose-btn svg {
+      width: 20px !important;
+      height: 20px !important;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .content-screen h2 {
+      font-size: 24px !important;
+      line-height: 32px;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px !important;
+      color: var(--text);
+    }
+
+    .content-screen p {
+      max-width: 900px;
+      font-size: 14px !important;
+      line-height: 22px;
+      color: var(--muted) !important;
+      margin-bottom: 16px !important;
+    }
+
+    .screen-card,
+    .contacts-card,
+    .group-chat-card,
+    .private-chat-card,
+    .contact-profile-card,
+    .register-card {
+      max-width: min(1040px, 100%) !important;
+      width: 100%;
+      border-radius: var(--radius-xl) !important;
+      border: 1px solid var(--border) !important;
+      background: var(--surface) !important;
+      box-shadow: var(--shadow-xs) !important;
+      padding: 20px !important;
+      backdrop-filter: none !important;
+    }
+
+    .contacts-add-box,
+    .group-panel,
+    .contact-profile-field,
+    .login-auto-info {
+      border-radius: var(--radius-lg) !important;
+      background: var(--surface-2) !important;
+      border: 1px solid var(--border) !important;
+      box-shadow: none !important;
+    }
+
+    .contact-row,
+    .private-chat-contact-row,
+    .group-contact-item,
+    .group-member-item {
+      min-height: 64px;
+      border-radius: var(--radius-lg) !important;
+      border: 1px solid var(--border) !important;
+      background: var(--surface) !important;
+      box-shadow: none !important;
+      padding: 12px !important;
+      transform: none !important;
+    }
+
+    .contact-row:hover,
+    .private-chat-contact-row:hover,
+    .group-contact-item:hover,
+    .group-member-item:hover {
+      background: var(--surface-2) !important;
+      border-color: var(--border-strong) !important;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    .contact-icon-btn,
+    .icon-action-btn,
+    .mini-icon-btn {
+      width: 40px !important;
+      height: 40px !important;
+      border-radius: var(--radius-md) !important;
+      background: var(--surface-2) !important;
+      border: 1px solid var(--border) !important;
+      color: var(--text-2) !important;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    .contact-icon-btn:hover,
+    .icon-action-btn:hover,
+    .mini-icon-btn:hover {
+      background: var(--primary-soft) !important;
+      color: var(--primary) !important;
+      border-color: #c7d2fe !important;
+      transform: none !important;
+    }
+
+    .small-button,
+    .auth-link-button {
+      min-height: 40px !important;
+      padding: 0 16px !important;
+      border-radius: var(--radius-md) !important;
+      font-size: 14px !important;
+      line-height: 20px;
+      font-weight: 700;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    .small-button:not(.secondary):not(.danger),
+    .auth-link-button.primary-login {
+      background: var(--primary) !important;
+      color: #fff !important;
+      border: 1px solid var(--primary) !important;
+    }
+
+    .small-button.secondary,
+    .auth-link-button {
+      background: var(--surface-2) !important;
+      color: var(--text-2) !important;
+      border: 1px solid var(--border) !important;
+    }
+
+    .footer {
+      height: var(--footer-h) !important;
+      background: var(--surface) !important;
+      border-top: 1px solid var(--border) !important;
+      color: var(--muted) !important;
+      font-size: 12px !important;
+      line-height: 16px;
+      padding: 0 20px !important;
+    }
+
+    @media (min-width: 1500px) {
+      :root { --sidebar-w: 320px; }
+      .chat-window, .content-screen {
+        padding-left: 56px !important;
+        padding-right: 56px !important;
+      }
+      .message { max-width: min(760px, 68%) !important; }
+    }
+
+    @media (max-width: 1100px) {
+      :root { --sidebar-w: 260px; }
+      .chat-window, .content-screen { padding: 20px 24px !important; }
+      .message { max-width: 82% !important; }
+    }
+
+    @media (max-width: 820px) {
+      .app-shell {
+        grid-template-columns: 1fr !important;
+        grid-template-rows: 56px 216px minmax(0, 1fr) 44px !important;
+      }
+
+      .brand {
+        grid-column: 1 / 2 !important;
+        grid-row: 1 / 2 !important;
+        border-right: 0 !important;
+      }
+
+      .topbar { display: none !important; }
+
+      .sidebar {
+        grid-column: 1 / 2 !important;
+        grid-row: 2 / 3 !important;
+        border-right: 0 !important;
+        border-bottom: 1px solid var(--border) !important;
+        overflow-y: auto !important;
+      }
+
+      .main {
+        grid-column: 1 / 2 !important;
+        grid-row: 3 / 4 !important;
+      }
+
+      .footer {
+        grid-column: 1 / 2 !important;
+        grid-row: 4 / 5 !important;
+      }
+
+      .menu-list { max-height: none; }
+      .online-users-header, .chat-users { display: none !important; }
+
+      .chat-window, .content-screen { padding: 14px !important; }
+      .message { max-width: 92% !important; }
+
+      .input-area {
+        height: 64px !important;
+        min-height: 64px !important;
+        grid-template-columns: 42px minmax(0, 1fr) 42px !important;
+        padding: 9px 10px !important;
+      }
+
+      .file-btn,
+      .send-btn,
+      .file-btn.icon-compose-btn,
+      .send-btn.icon-compose-btn {
+        width: 42px !important;
+        height: 42px !important;
+        min-width: 42px !important;
+      }
+
+      .message-input {
+        height: 42px !important;
+        line-height: 42px !important;
+      }
+
+      .group-layout,
+      .contact-profile-grid,
+      .register-layout,
+      .register-form-grid {
+        grid-template-columns: 1fr !important;
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <!-- Стартова сторінка: показується до входу користувача в застосунок. -->
+  <section class="start-page" id="startPage">
+    <!-- Верхня зона стартової сторінки: заголовок і вибір мови. -->
+    <div class="start-top">
+      <div class="start-title">Стартова сторінка</div>
+      <select class="language-select" id="startLanguageSelect" aria-label="Вибір мови">
+        <option value="uk">вибір мови</option>
+        <option value="uk">Українська</option>
+        <option value="de">Deutsch</option>
+        <option value="en">English</option>
+        <option value="ru">Русский</option>
+      </select>
+    </div>
+
+    <!-- Центральний блок стартової сторінки: логотип, опис, форма входу. -->
+    <div class="hero-area">
+      <div class="start-logo">
+        <div class="logo-line-1">"ПРОСТО___</div>
+        <div class="logo-line-2">____ЧАТ"</div>
+      </div>
+
+      <p class="start-subtitle">
+        Кросплатформений чат для приватних повідомлень · WebSocket · REST API · Docker
+      </p>
+
+      <!-- Форма авторизації: логін, пароль, вхід і перехід до реєстрації. -->
+      <div class="auth-box">
+        <div class="auth-fields">
+          <div class="auth-row">
+            <label for="startLoginInput">Логін</label>
+            <input id="startLoginInput" type="text" placeholder="Email, телефон, ім'я або номер" autocomplete="username" />
+          </div>
+          <div class="auth-row">
+            <label for="startPasswordInput">Пароль</label>
+            <input id="startPasswordInput" type="password" placeholder="Пароль" autocomplete="current-password" />
+          </div>
+        </div>
+
+        <div class="auth-actions">
+          <button class="auth-link-button primary-login" type="button" id="startLoginButton">Вхід</button>
+          <button class="auth-link-button" type="button" id="startRegisterButton">Реєстрація</button>
+        </div>
+
+        <div class="auth-hint">Реєстрація та вхід працюють через REST API</div>
+      </div>
+
+      <div class="start-footer-note">WebSocket · PostgreSQL · Docker Compose · k3s</div>
+    </div>
+
+    <!-- Модальне вікно реєстрації: відкривається поверх стартової сторінки. -->
+    <div class="register-modal-backdrop hidden" id="registerModalBackdrop">
+      <div class="register-modal">
+        <div class="register-modal-header">
+          <div>
+            <h2>Створення акаунта</h2>
+            <p>Реєстрація проходить до входу в повноцінний чат. Можна використати email або номер телефону.</p>
+          </div>
+          <button class="modal-close-button" type="button" id="closeRegisterModal">×</button>
+        </div>
+
+        <div id="startRegisterFormPlace"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Основний інтерфейс чату після входу користувача. -->
+  <div class="app-shell hidden" id="chatApp">
+    <!-- Логотип застосунку в лівому верхньому куті. -->
+    <header class="brand">
+      <span>"ПРОСТО___</span>
+      <span>____ЧАТ"</span>
+    </header>
+
+    <!-- Верхня панель активного чату: назва, статус, профіль користувача. -->
+    <section class="topbar">
+      <div class="topbar-title">
+        <strong id="currentChatTitle">Приватний чат</strong>
+        <span id="currentChatStatus">Виберіть користувача для діалогу</span>
+      </div>
+      <div class="profile-box">
+        <span id="profileName">імя користувача</span>
+        <button class="profile-avatar profile-avatar-button" id="profileAvatarButton" type="button" aria-label="Відкрити профіль користувача" aria-expanded="false">👤</button>
+      </div>
+    </section>
+
+    <aside class="profile-widget hidden" id="profileWidget" aria-label="Профіль користувача"></aside>
+
+    <!-- Ліва панель навігації: меню, дерева чатів, користувачі онлайн. -->
+    <aside class="sidebar">
+      <div class="menu-title">Меню</div>
+      <!-- Основне дерево меню застосунку. -->
+      <ul class="menu-list">
+        <li class="menu-group open">
+          <button class="menu-parent active" type="button" data-group="chat">
+            <span class="menu-parent-left"><span class="arrow">▶</span> Чат</span>
+            <span class="badge">3</span>
+          </button>
+          <ul class="submenu">
+            <!-- Розділ контактів користувача. -->
+            <li class="menu-item active" data-section="contacts">Контакти</li>
+
+            <!-- Розділ групових чатів: плюс створює нову групову кімнату. -->
+            <li class="menu-item menu-item-with-action" data-section="groups">
+              <button class="tree-toggle-btn" id="groupTreeToggle" type="button" title="Згорнути / розгорнути список груп" onclick="event.stopPropagation(); toggleGroupRoomsTree()">▾</button>
+              <span class="menu-item-label">Груповий чат</span>
+              <button class="new-chat-btn" type="button" title="Створити груповий чат" onclick="event.stopPropagation(); showCreateGroupChatScreen()">+</button>
+            </li>
+            <!-- Тут JavaScript додає створені групові чати. -->
+            <ul class="group-room-tree" id="groupRoomsMenu"></ul>
+
+            <!-- Розділ приватних чатів: плюс створює новий приватний діалог. -->
+            <li class="menu-item menu-item-with-action" data-section="private">
+              <button class="tree-toggle-btn" id="privateTreeToggle" type="button" title="Згорнути / розгорнути список чатів" onclick="event.stopPropagation(); togglePrivateChatsTree()">▾</button>
+              <span class="menu-item-label">Чати</span>
+              <button class="new-chat-btn" type="button" title="Створити приватний чат" onclick="event.stopPropagation(); showCreatePrivateChatScreen()">+</button>
+            </li>
+            <!-- Тут JavaScript додає створені приватні чати. -->
+            <ul class="private-chat-tree" id="privateChatsMenu"></ul>
+          </ul>
+        </li>
+
+        <!-- Наступні блоки меню: налаштування та файли. -->
+        <li class="menu-group">
+          <button class="menu-parent" type="button" data-group="settings">
+            <span class="menu-parent-left"><span class="arrow">▶</span> Налаштування</span>
+          </button>
+          <ul class="submenu">
+            <li class="menu-item" data-section="edit">Редагування акаунту</li>
+          </ul>
+        </li>
+
+        <li class="menu-group">
+          <button class="menu-parent" type="button" data-group="files">
+            <span class="menu-parent-left"><span class="arrow">▶</span> Файли</span>
+          </button>
+          <ul class="submenu">
+            <li class="menu-item" data-section="files-in">Отримані файли</li>
+            <li class="menu-item" data-section="files-out">Відправлені файли</li>
+          </ul>
+        </li>
+      </ul>
+
+      <!-- Заголовок списку користувачів онлайн. -->
+      <div class="online-users-header">
+        <span>Користувачі онлайн</span>
+        <span class="online-count-badge" id="onlineUsersCount">0</span>
+      </div>
+      <!-- Список користувачів онлайн; клік відкриває приватний чат. -->
+      <div class="chat-users" id="usersList">
+        <div class="field-note">Контакти з'являться після входу та додавання користувачів за системним номером.</div>
+      </div>
+    </aside>
+
+    <!-- Основна область: повідомлення чату, службові екрани та нижня панель введення. -->
+    <main class="main">
+      <!-- Вікно повідомлень активного чату. -->
+      <section class="chat-window" id="chatWindow">
+        <div class="day-divider">Оберіть чат</div>
+      </section>
+
+      <!-- Контентний екран для контактів, файлів, налаштувань та інших сторінок. -->
+      <section class="content-screen hidden" id="contentScreen"></section>
+
+      <!-- Нижня форма: додавання файлу, поле тексту, кнопка відправки. -->
+      <form class="input-area" id="messageForm">
+        <button type="button" class="file-btn icon-compose-btn" id="fileButton" title="Додати файл" aria-label="Додати файл">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+            <path d="M21.4 11.6 12.2 20.8a6 6 0 0 1-8.5-8.5l9.7-9.7a4 4 0 0 1 5.7 5.7l-9.7 9.7a2 2 0 0 1-2.8-2.8l8.9-8.9"></path>
+          </svg>
+        </button>
+        <input class="message-input" id="messageInput" type="text" placeholder="Написати повідомлення..." autocomplete="off" />
+        <button type="submit" class="send-btn icon-compose-btn send-icon-btn" title="Відправити" aria-label="Відправити">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+            <path d="M22 2 11 13"></path>
+            <path d="M22 2 15 22l-4-9-9-4 20-7Z"></path>
+          </svg>
+        </button>
+      </form>
+    </main>
+
+    <!-- Нижній службовий рядок застосунку. -->
+    <footer class="footer">
+      Подвал: версія додатка · розробник · ліцензія · Docker Compose · WebSocket · PostgreSQL
+    </footer>
+  </div>
+
+  <!-- JavaScript-логіка застосунку: стан, екрани, меню, чати, файли та події. -->
+  <script>
+    // Глобальний стан застосунку: поточний користувач, контакти, групи, приватні чати та налаштування.
+    const appState = {
+      currentUserName: '',
+      selectedChatUser: '',
+      avatarDataUrl: null,
+      contacts: [],
+      groupDraft: {
+        name: 'Новий груповий чат',
+        members: []
+      },
+      createdGroup: null,
+      groupRooms: [],
+      currentGroupRoomId: null,
+      privateChats: [],
+      currentPrivateChatId: null,
+      groupRoomsCollapsed: false,
+      privateChatsCollapsed: false,
+      authToken: localStorage.getItem('prosto_chat_token'),
+      currentUser: null,
+      activeChatId: null,
+      activeSocket: null
+    };
+
+    // Посилання на DOM-елементи, з якими працює JavaScript.
+    const el = {
+      startPage: document.getElementById('startPage'),
+      chatApp: document.getElementById('chatApp'),
+      startLoginInput: document.getElementById('startLoginInput'),
+      startPasswordInput: document.getElementById('startPasswordInput'),
+      startLoginButton: document.getElementById('startLoginButton'),
+      startRegisterButton: document.getElementById('startRegisterButton'),
+      startLanguageSelect: document.getElementById('startLanguageSelect'),
+      registerModalBackdrop: document.getElementById('registerModalBackdrop'),
+      closeRegisterModal: document.getElementById('closeRegisterModal'),
+      startRegisterFormPlace: document.getElementById('startRegisterFormPlace'),
+      profileName: document.getElementById('profileName'),
+      profileAvatarButton: document.getElementById('profileAvatarButton'),
+      profileWidget: document.getElementById('profileWidget'),
+      usersList: document.getElementById('usersList'),
+      currentChatTitle: document.getElementById('currentChatTitle'),
+      currentChatStatus: document.getElementById('currentChatStatus'),
+      chatWindow: document.getElementById('chatWindow'),
+      contentScreen: document.getElementById('contentScreen'),
+      messageForm: document.getElementById('messageForm'),
+      messageInput: document.getElementById('messageInput'),
+      fileButton: document.getElementById('fileButton'),
+      groupRoomsMenu: document.getElementById('groupRoomsMenu'),
+      privateChatsMenu: document.getElementById('privateChatsMenu')
+    };
+
+    const BACKEND_HTTP_ORIGIN = window.location.origin;
+    const BACKEND_WS_ORIGIN = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
+    const API_BASE_URL = `${BACKEND_HTTP_ORIGIN}/api`;
+    const WS_BASE_URL = `${BACKEND_WS_ORIGIN}/ws`;
+
+    function authHeaders() {
+      return appState.authToken ? { Authorization: `Bearer ${appState.authToken}` } : {};
+    }
+
+    async function apiRequest(path, options = {}) {
+      const headers = {
+        ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+        ...authHeaders(),
+        ...(options.headers || {})
+      };
+
+      const response = await fetch(`${API_BASE_URL}${path}`, {
+        ...options,
+        headers
+      });
+
+      if (!response.ok) {
+        let detail = `HTTP ${response.status}`;
+        try {
+          const data = await response.json();
+          detail = data.detail || detail;
+        } catch (error) {
+          detail = response.statusText || detail;
+        }
+        throw new Error(detail);
+      }
+
+      if (response.status === 204) return null;
+      return response.json();
+    }
+
+    function mapUserToContact(user, note = 'backend contact') {
+      return {
+        id: user.user_number,
+        userId: user.id,
+        name: user.display_name,
+        note,
+        status: user.status || 'offline',
+        age: user.age ?? null,
+        email: user.email ?? null,
+        phone: user.phone ?? null
+      };
+    }
+
+    function mapContactFromApi(contact) {
+      return mapUserToContact(contact.contact_user, 'додано через backend');
+    }
+
+    function mapPrivateChatFromApi(chat) {
+      const currentUserId = appState.currentUser?.id;
+      const otherMember = chat.members?.find(member => member.user.id !== currentUserId) || chat.members?.[0];
+      const contact = otherMember ? mapUserToContact(otherMember.user, 'приватний чат') : {
+        id: chat.id,
+        userId: chat.id,
+        name: chat.title,
+        note: 'приватний чат',
+        status: 'offline'
+      };
+
+      return {
+        id: chat.id,
+        contact,
+        createdAt: chat.created_at
+      };
+    }
+
+    function mapGroupChatFromApi(chat) {
+      const currentUserId = appState.currentUser?.id;
+      return {
+        id: chat.id,
+        name: chat.title || chat.name || 'Груповий чат',
+        owner: {
+          id: chat.owner_user_id,
+          name: appState.currentUserName,
+          role: 'admin'
+        },
+        members: (chat.members || [])
+          .filter(member => member.user.id !== currentUserId)
+          .map(member => mapUserToContact(member.user, member.role)),
+        createdAt: chat.created_at
+      };
+    }
+
+    function renderUsersList() {
+      if (!el.usersList) return;
+
+      const rows = appState.contacts.map(contact => {
+        const avatarLetter = escapeHtml(contact.name.slice(0, 1).toUpperCase() || '?');
+        const statusClass = contact.status === 'online' ? 'online' : '';
+
+        return `
+          <div class="user-card" data-contact-id="${escapeHtml(contact.id)}" data-user="${escapeHtml(contact.name)}" data-status="${escapeHtml(contact.status)}">
+            <div class="user-avatar">${avatarLetter}</div>
+            <div class="user-info">
+              <strong>${escapeHtml(contact.name)}</strong>
+              <span>${escapeHtml(contact.status)} · приватний чат</span>
+            </div>
+            <div class="status-dot ${statusClass}"></div>
+          </div>
+        `;
+      }).join('');
+
+      el.usersList.innerHTML = rows || '<div class="field-note">Контакти з\'являться після додавання користувачів за системним номером.</div>';
+      updateOnlineUsersCount();
+    }
+
+    async function loadInitialData() {
+      const [currentUser, contacts, chats] = await Promise.all([
+        apiRequest('/users/me'),
+        apiRequest('/contacts'),
+        apiRequest('/chats')
+      ]);
+
+      appState.currentUser = currentUser;
+      appState.currentUserName = currentUser.display_name;
+      appState.contacts = contacts.map(mapContactFromApi);
+      appState.privateChats = chats.filter(chat => chat.type === 'private').map(mapPrivateChatFromApi);
+      appState.groupRooms = chats.filter(chat => chat.type === 'group').map(mapGroupChatFromApi);
+
+      applyProfileName(currentUser.display_name);
+      renderUsersList();
+      renderPrivateChatsMenu();
+      renderGroupRoomsMenu();
+    }
+
+    function renderIncomingPayload(payload) {
+      const type = payload.sender_id === appState.currentUser?.id ? 'outgoing' : 'incoming';
+      const body = payload.type === 'file' ? `Файл: ${payload.body}` : payload.body;
+      addMessage(body || '', type, payload.sender_name || 'User');
+    }
+
+    async function loadChatMessages(chatId) {
+      if (!chatId || !appState.authToken || !el.chatWindow) return;
+      const messages = await apiRequest(`/chats/${encodeURIComponent(chatId)}/messages`);
+      el.chatWindow.innerHTML = '<div class="day-divider">Сьогодні</div>';
+      messages.forEach(renderIncomingPayload);
+    }
+
+    function connectChatSocket(chatId) {
+      if (!chatId || !appState.authToken) return;
+      if (appState.activeSocket) {
+        appState.activeSocket.close();
+      }
+
+      appState.activeChatId = chatId;
+      const socket = new WebSocket(`${WS_BASE_URL}/chats/${encodeURIComponent(chatId)}?token=${encodeURIComponent(appState.authToken)}`);
+      appState.activeSocket = socket;
+
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.event === 'message.created') {
+          renderIncomingPayload(data.payload);
+        }
+      };
+
+      socket.onclose = () => {
+        if (appState.activeSocket === socket) {
+          appState.activeSocket = null;
+        }
+      };
+    }
+
+    function safeOn(element, eventName, handler) {
+      if (!element) {
+        console.warn(`[UI warning] Element for event "${eventName}" was not found.`);
+        return;
+      }
+      element.addEventListener(eventName, handler);
+    }
+
+    // Екранує текст перед вставкою в HTML, щоб уникнути небезпечної розмітки.
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function avatarImageHtml(dataUrl) {
+      return `<img src="${dataUrl}" alt="avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
+    }
+
+    function updateAllOwnAvatars(dataUrl) {
+      if (!dataUrl) return;
+      appState.avatarDataUrl = dataUrl;
+      document.querySelectorAll('.profile-avatar').forEach(avatar => {
+        avatar.innerHTML = avatarImageHtml(dataUrl);
+      });
+      if (el.profileWidget && !el.profileWidget.classList.contains('hidden')) {
+        renderProfileWidget();
+      }
+    }
+
+    function applyProfileName(name) {
+      const cleanName = name.trim() || 'Користувач';
+      appState.currentUserName = cleanName;
+      if (el.profileName) el.profileName.textContent = cleanName;
+      if (el.startLoginInput) el.startLoginInput.value = cleanName;
+      if (el.profileWidget && !el.profileWidget.classList.contains('hidden')) {
+        renderProfileWidget();
+      }
+    }
+
+    function getOwnProfileData() {
+      const user = appState.currentUser || {};
+      return {
+        name: user.display_name || appState.currentUserName || 'Користувач',
+        userNumber: user.user_number || 'не присвоєно',
+        status: user.status || (appState.authToken ? 'online' : 'offline'),
+        email: user.email || 'не вказано',
+        phone: user.phone || 'не вказано',
+        age: user.age ?? 'не вказано'
+      };
+    }
+
+    function renderProfileWidget() {
+      if (!el.profileWidget) return;
+
+      const profile = getOwnProfileData();
+      const avatarContent = appState.avatarDataUrl
+        ? avatarImageHtml(appState.avatarDataUrl)
+        : escapeHtml(profile.name.slice(0, 1).toUpperCase() || '?');
+
+      el.profileWidget.innerHTML = `
+        <div class="profile-widget-head">
+          <div class="profile-widget-avatar">${avatarContent}</div>
+          <div class="profile-widget-title">
+            <strong>${escapeHtml(profile.name)}</strong>
+            <span>${escapeHtml(profile.status)}</span>
+          </div>
+        </div>
+
+        <div class="profile-widget-grid">
+          <div class="profile-widget-row">
+            <label>Номер для пошуку</label>
+            <div class="profile-widget-number">
+              <code>${escapeHtml(profile.userNumber)}</code>
+              <button class="profile-widget-copy" type="button" title="Скопіювати номер" onclick="copyOwnUserNumber()">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="9" y="9" width="11" height="11" rx="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+            </div>
+            <span id="profileWidgetCopyState">За цим номером інші користувачі можуть знайти вас у системі.</span>
+          </div>
+          <div class="profile-widget-row">
+            <label>Email</label>
+            <strong>${escapeHtml(profile.email)}</strong>
+          </div>
+          <div class="profile-widget-row">
+            <label>Телефон</label>
+            <strong>${escapeHtml(profile.phone)}</strong>
+          </div>
+          <div class="profile-widget-row">
+            <label>Вік</label>
+            <strong>${escapeHtml(profile.age)}</strong>
+          </div>
+        </div>
+
+        <div class="profile-widget-actions">
+          <button class="small-button secondary" type="button" onclick="copyOwnUserNumber()">Скопіювати номер</button>
+          <button class="small-button" type="button" onclick="closeProfileWidget(); showContentScreen(editAccountScreen(), 'Редагування акаунту', 'Зміна даних користувача')">Редагувати</button>
+        </div>
+      `;
+    }
+
+    function openProfileWidget() {
+      renderProfileWidget();
+      el.profileWidget?.classList.remove('hidden');
+      el.profileAvatarButton?.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeProfileWidget() {
+      el.profileWidget?.classList.add('hidden');
+      el.profileAvatarButton?.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleProfileWidget(event) {
+      event?.stopPropagation();
+      if (!el.profileWidget || el.profileWidget.classList.contains('hidden')) {
+        openProfileWidget();
+      } else {
+        closeProfileWidget();
+      }
+    }
+
+    async function copyOwnUserNumber() {
+      const number = getOwnProfileData().userNumber;
+      try {
+        await navigator.clipboard.writeText(number);
+      } catch (error) {
+        const textarea = document.createElement('textarea');
+        textarea.value = number;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        textarea.remove();
+      }
+
+      const state = document.getElementById('profileWidgetCopyState');
+      if (state) state.textContent = 'Номер скопійовано.';
+    }
+
+    async function enterChat() {
+      const login = el.startLoginInput?.value.trim() || '';
+      const password = el.startPasswordInput?.value.trim();
+
+      if (!login || !password) {
+        alert('Введіть логін і пароль.');
+        return;
+      }
+
+      try {
+        const data = await apiRequest('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ login, password })
+        });
+
+        appState.authToken = data.access_token;
+        localStorage.setItem('prosto_chat_token', data.access_token);
+        await loadInitialData();
+
+        el.startPage?.classList.add('hidden');
+        el.chatApp?.classList.remove('hidden');
+
+        if (appState.privateChats[0]) {
+          openPrivateChatRoom(appState.privateChats[0]);
+        } else {
+          showContentScreen(contactsScreen(), 'Контакти', 'Додавання контакту за номером користувача');
+        }
+      } catch (error) {
+        alert(`Не вдалося увійти: ${error.message}`);
+      }
+    }
+
+    // Показує область чату і приховує службовий контентний екран.
+    function showChatArea() {
+      el.chatWindow?.classList.remove('hidden');
+      el.messageForm?.classList.remove('hidden');
+      el.contentScreen?.classList.add('hidden');
+    }
+
+    function showContentScreen(html, title, status) {
+      el.chatWindow?.classList.add('hidden');
+      el.messageForm?.classList.add('hidden');
+      el.contentScreen?.classList.remove('hidden');
+      if (el.contentScreen) el.contentScreen.innerHTML = html;
+      if (el.currentChatTitle) el.currentChatTitle.textContent = title;
+      if (el.currentChatStatus) el.currentChatStatus.textContent = status;
+    }
+
+    // Оновлює заголовок активного приватного чату.
+    function updateChatHeader(userName, status) {
+      appState.selectedChatUser = userName;
+      if (el.currentChatTitle) el.currentChatTitle.textContent = `Приватний чат з ${userName}`;
+      if (el.currentChatStatus) {
+        el.currentChatStatus.textContent = status === 'online'
+          ? 'Користувач online · WebSocket активний'
+          : 'Користувач offline · повідомлення буде збережено в БД';
+      }
+    }
+
+    // Повертає поточний час у форматі HH:MM для метаданих повідомлень.
+    function getCurrentTime() {
+      const now = new Date();
+      return now.toLocaleTimeString('uk-UA', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function addMessage(text, type = 'outgoing', sender = 'Ви') {
+      if (!el.chatWindow) return;
+
+      const row = document.createElement('div');
+      row.className = `message-row ${type}`;
+
+      const message = document.createElement('div');
+      message.className = `message ${type}`;
+      message.textContent = text;
+
+      const meta = document.createElement('span');
+      meta.className = 'message-meta';
+      meta.textContent = `${sender} · ${getCurrentTime()}`;
+
+      message.appendChild(meta);
+      row.appendChild(message);
+      el.chatWindow.appendChild(row);
+      el.chatWindow.scrollTop = el.chatWindow.scrollHeight;
+    }
+
+    function accountFormHtml(mode) {
+      const isRegister = mode === 'register';
+      const cardClass = isRegister ? 'screen-card register-card start-register-card' : 'screen-card register-card';
+      const avatarId = isRegister ? 'registerAvatarPreview' : 'editAvatarPreview';
+      const avatarInputId = isRegister ? 'registerAvatarInput' : 'editAvatarInput';
+      const avatarButtonText = isRegister ? 'Додати фото' : 'Змінити фото';
+      const nameValue = escapeHtml(appState.currentUserName);
+      const emailValue = isRegister ? '' : (appState.currentUser?.email || '');
+      const phoneValue = isRegister ? '' : (appState.currentUser?.phone || '');
+      const ageValue = isRegister ? '' : (appState.currentUser?.age ?? '');
+      const submitText = isRegister ? 'Створити акаунт' : 'Зберегти зміни';
+      const submitAction = isRegister ? 'finishRegistration()' : 'saveProfileChanges()';
+      const cancelAction = isRegister
+        ? 'closeRegistrationModal()'
+        : "showChatArea(); updateChatHeader(appState.selectedChatUser, 'online')";
+      const cancelText = isRegister ? 'Скасувати' : 'Назад до чату';
+      const avatarContent = appState.avatarDataUrl ? avatarImageHtml(appState.avatarDataUrl) : '👤';
+      const passwordLabel = isRegister ? 'Пароль' : 'Новий пароль <span class="optional-mark">необов\'язково</span>';
+      const passwordPlaceholder = isRegister ? 'Введіть пароль' : 'Залиште порожнім, якщо не змінюєте';
+      const passwordRepeatLabel = isRegister ? 'Повторіть пароль' : 'Повторіть новий пароль';
+      const note = isRegister
+        ? 'Дані акаунта зберігаються через REST API: <strong>POST /api/auth/register</strong>.'
+        : 'Дані профілю оновлюються через REST API: <strong>PATCH /api/users/me</strong>. Пароль змінюється тільки тоді, коли користувач заповнив поле нового пароля.';
+
+      return `
+        <div class="${cardClass}">
+          <div class="register-layout">
+            <div class="avatar-upload-box">
+              <div class="avatar-preview" id="${avatarId}">${avatarContent}</div>
+              <label class="avatar-upload-label" for="${avatarInputId}">${avatarButtonText}</label>
+              <input id="${avatarInputId}" type="file" accept="image/*" onchange="previewSelectedAvatar(event, '${avatarId}')" />
+              <div class="avatar-note">Фото необов'язкове. Якщо аватар не вибрано, буде використовуватись стандартна іконка користувача.</div>
+            </div>
+
+            <div class="register-form-area">
+              <div class="register-form-grid">
+                <div class="full-width">
+                  <div class="login-auto-info">
+                    <div class="login-auto-title">
+                      <span>Спосіб входу визначається автоматично</span>
+                      <span class="login-auto-badge">Email / Телефон</span>
+                    </div>
+                    <p class="login-auto-text">Якщо користувач має email і номер телефону, він може входити будь-яким способом. Якщо заповнене тільки одне поле, активним способом входу буде тільки воно.</p>
+                  </div>
+                </div>
+
+                <div>
+                  <label>Email</label>
+                  <input type="email" value="${escapeHtml(emailValue)}" placeholder="name@example.com" autocomplete="email" />
+                </div>
+
+                <div>
+                  <label>Номер телефону</label>
+                  <input type="tel" value="${escapeHtml(phoneValue)}" placeholder="+380 / +49 ..." autocomplete="tel" />
+                </div>
+
+                <div>
+                  <label>Ім'я</label>
+                  <input type="text" value="${nameValue}" placeholder="Введіть ім'я" autocomplete="given-name" />
+                </div>
+
+                <div>
+                  <label>Прізвище <span class="optional-mark">необов'язково</span></label>
+                  <input type="text" placeholder="Введіть прізвище" autocomplete="family-name" />
+                </div>
+
+                <div>
+                  <label>Вік <span class="optional-mark">необов'язково</span></label>
+                  <input type="number" value="${escapeHtml(ageValue)}" placeholder="Наприклад: 25" min="7" max="120" autocomplete="off" />
+                </div>
+
+                <div>
+                  <label>Логін / ім'я в чаті</label>
+                  <input type="text" value="${nameValue}" placeholder="Публічне ім'я в чаті" autocomplete="username" />
+                </div>
+
+                <div>
+                  <label>${passwordLabel}</label>
+                  <input type="password" placeholder="${passwordPlaceholder}" autocomplete="new-password" />
+                </div>
+
+                <div>
+                  <label>${passwordRepeatLabel}</label>
+                  <input type="password" placeholder="${passwordRepeatLabel}" autocomplete="new-password" />
+                </div>
+
+                <div class="full-width">
+                  <div class="field-note">${note}</div>
+                </div>
+              </div>
+
+              <div class="screen-actions">
+                <button class="small-button" type="button" onclick="${submitAction}">${submitText}</button>
+                <button class="small-button secondary" type="button" onclick="${cancelAction}">${cancelText}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function registrationScreen() {
+      return accountFormHtml('register');
+    }
+
+    // Генерує екран редагування акаунта.
+    function editAccountScreen() {
+      return `
+        <h2>Редагування акаунту</h2>
+        <p>Тут користувач може змінити ті самі дані, які він вказував під час первинної реєстрації: фото, ім'я, прізвище, вік, email, телефон, логін і пароль.</p>
+        ${accountFormHtml('edit')}
+      `;
+    }
+
+    function previewSelectedAvatar(event, previewElementId) {
+      const file = event.target.files && event.target.files[0];
+      const preview = document.getElementById(previewElementId);
+      if (!file || !preview) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result);
+        preview.innerHTML = avatarImageHtml(dataUrl);
+        updateAllOwnAvatars(dataUrl);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function getFormValue(root, selector) {
+      return root?.querySelector(selector)?.value?.trim() || '';
+    }
+
+    async function finishRegistration() {
+      const root = el.startRegisterFormPlace;
+      const loginValue = getFormValue(root, 'input[autocomplete="username"]');
+      const nameValue = getFormValue(root, 'input[autocomplete="given-name"]');
+      const emailValue = getFormValue(root, 'input[autocomplete="email"]');
+      const phoneValue = getFormValue(root, 'input[autocomplete="tel"]');
+      const ageValue = getFormValue(root, 'input[type="number"]');
+      const passwordInputs = root?.querySelectorAll('input[type="password"]') || [];
+      const password = passwordInputs[0]?.value || '';
+      const passwordRepeat = passwordInputs[1]?.value || '';
+
+      if (password !== passwordRepeat) {
+        alert('Паролі не збігаються.');
+        return;
+      }
+
+      try {
+        const data = await apiRequest('/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({
+            display_name: loginValue || nameValue || 'Користувач',
+            email: emailValue || null,
+            phone: phoneValue || null,
+            password,
+            age: ageValue ? Number(ageValue) : null
+          })
+        });
+
+        appState.authToken = data.access_token;
+        localStorage.setItem('prosto_chat_token', data.access_token);
+        closeRegistrationModal();
+        await loadInitialData();
+
+        el.startPage?.classList.add('hidden');
+        el.chatApp?.classList.remove('hidden');
+        showContentScreen(contactsScreen(), 'Контакти', `Ваш номер користувача: ${data.user.user_number}`);
+      } catch (error) {
+        alert(`Не вдалося зареєструватися: ${error.message}`);
+      }
+    }
+
+    async function saveProfileChanges() {
+      const root = el.contentScreen;
+      const usernameValue = getFormValue(root, 'input[autocomplete="username"]');
+      const nameValue = getFormValue(root, 'input[autocomplete="given-name"]');
+      const emailValue = getFormValue(root, 'input[autocomplete="email"]');
+      const phoneValue = getFormValue(root, 'input[autocomplete="tel"]');
+      const ageValue = getFormValue(root, 'input[type="number"]');
+
+      try {
+        const user = await apiRequest('/users/me', {
+          method: 'PATCH',
+          body: JSON.stringify({
+            display_name: usernameValue || nameValue || appState.currentUserName,
+            email: emailValue || null,
+            phone: phoneValue || null,
+            age: ageValue ? Number(ageValue) : null
+          })
+        });
+
+        appState.currentUser = user;
+        appState.currentUserName = user.display_name;
+        applyProfileName(user.display_name);
+        showChatArea();
+        updateChatHeader(appState.selectedChatUser, 'online');
+        addMessage('Профіль оновлено і збережено в базі даних.', 'incoming', 'System');
+      } catch (error) {
+        alert(`Не вдалося оновити профіль: ${error.message}`);
+      }
+    }
+
+    // Генерує екран вибору мови інтерфейсу.
+    function languageScreen() {
+      return `
+        <h2>Вибір мови</h2>
+        <p>Мовний модуль потрібен для кросплатформенного застосунку та нормального UX.</p>
+        <div class="screen-card">
+          <label>Мова інтерфейсу</label>
+          <select>
+            <option>Українська</option>
+            <option>Deutsch</option>
+            <option>English</option>
+            <option>Русский</option>
+          </select>
+          <div class="screen-actions">
+            <button class="small-button" type="button">Застосувати</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Генерує екран видалення акаунта.
+    function deleteAccountScreen() {
+      return `
+        <h2>Видалення акаунту</h2>
+        <p>Небезпечна дія потребує підтвердження паролем користувача.</p>
+        <div class="screen-card">
+          <label>Введіть пароль для підтвердження</label>
+          <input type="password" placeholder="Пароль" />
+          <div class="screen-actions">
+            <button class="small-button danger" type="button">Видалити акаунт</button>
+            <button class="small-button secondary" type="button" onclick="showChatArea(); updateChatHeader(appState.selectedChatUser, 'online')">Скасувати</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function normalizeContactId(value) {
+      return String(value || '')
+        .trim()
+        .toUpperCase()
+        .split(' ')
+        .join('');
+    }
+
+    // Генерує кнопки дій для контакту: переглянути, поділитися, написати.
+    function renderContactActions(contact) {
+      const safeName = encodeURIComponent(contact.name);
+      const safeStatus = encodeURIComponent(contact.status);
+      const safeId = encodeURIComponent(contact.id);
+
+      return `
+        <div class="contact-actions">
+          <button class="contact-icon-btn view" type="button" data-tooltip="Переглянути" aria-label="Переглянути контакт" onclick="handleContactAction('view', '${safeName}', '${safeStatus}', '${safeId}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+              <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </button>
+
+          <button class="contact-icon-btn share" type="button" data-tooltip="Поділитися" aria-label="Поділитися контактом" onclick="handleContactAction('share', '${safeName}', '${safeStatus}', '${safeId}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <path d="M8.7 10.7l6.6-3.4"></path>
+              <path d="M8.7 13.3l6.6 3.4"></path>
+            </svg>
+          </button>
+
+          <button class="contact-icon-btn write" type="button" data-tooltip="Написати" aria-label="Написати повідомлення" onclick="handleContactAction('write', '${safeName}', '${safeStatus}', '${safeId}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </button>
+        </div>
+      `;
+    }
+
+    // Генерує картку контакту з деталями профілю.
+    function contactProfileScreen(contact) {
+      const avatarLetter = escapeHtml(contact.name.slice(0, 1).toUpperCase() || '?');
+      const statusText = contact.status === 'online' ? 'online' : 'offline';
+
+      return `
+        <h2>Картка контакту</h2>
+        <p>Тут показані основні дані контакту. У backend ці дані будуть братися з таблиці користувачів і контактів.</p>
+
+        <div class="screen-card contact-profile-card">
+          <div class="contact-profile-head">
+            <div class="contact-profile-avatar">${avatarLetter}</div>
+            <div class="contact-profile-meta">
+              <strong>${escapeHtml(contact.name)}</strong>
+              <span>${statusText}</span>
+            </div>
+          </div>
+
+          <div class="contact-profile-grid">
+            <div class="contact-profile-field">
+              <small>Номер користувача</small>
+              <span>${escapeHtml(contact.id)}</span>
+            </div>
+            <div class="contact-profile-field">
+              <small>Статус</small>
+              <span>${statusText}</span>
+            </div>
+            <div class="contact-profile-field">
+              <small>Вік</small>
+              <span>${contact.age ? escapeHtml(contact.age) : 'Не вказано'}</span>
+            </div>
+            <div class="contact-profile-field">
+              <small>Email</small>
+              <span>${contact.email ? escapeHtml(contact.email) : 'Не вказано'}</span>
+            </div>
+            <div class="contact-profile-field">
+              <small>Телефон</small>
+              <span>${contact.phone ? escapeHtml(contact.phone) : 'Не вказано'}</span>
+            </div>
+          </div>
+
+          <div class="screen-actions">
+            <button class="small-button" type="button" onclick="openContactChat('${encodeURIComponent(contact.name)}', '${encodeURIComponent(contact.status)}')">Написати</button>
+            <button class="small-button secondary" type="button" onclick="copyContactNumber('${encodeURIComponent(contact.id)}', '${encodeURIComponent(contact.name)}')">Скопіювати номер</button>
+            <button class="small-button secondary" type="button" onclick="showContentScreen(contactsScreen(), 'Контакти', 'Додавання контакту за номером користувача')">Назад</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function findContactById(contactId) {
+      return appState.contacts.find(contact => contact.id === contactId) || null;
+    }
+
+    async function copyContactNumber(encodedContactId, encodedContactName) {
+      const contactId = decodeURIComponent(encodedContactId);
+      const contactName = decodeURIComponent(encodedContactName || '');
+
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(contactId);
+        } else {
+          const tempInput = document.createElement('input');
+          tempInput.value = contactId;
+          document.body.appendChild(tempInput);
+          tempInput.select();
+          document.execCommand('copy');
+          tempInput.remove();
+        }
+        alert(`Номер контакту ${contactName || ''} скопійовано: ${contactId}`);
+      } catch (error) {
+        console.warn('Copy failed:', error);
+        alert(`Не вдалося скопіювати автоматично. Номер контакту: ${contactId}`);
+      }
+    }
+
+    // Обробляє натискання іконок у рядку контакту.
+    function handleContactAction(action, encodedContactName, encodedStatus, encodedContactId) {
+      const contactName = decodeURIComponent(encodedContactName);
+      const status = decodeURIComponent(encodedStatus);
+      const contactId = decodeURIComponent(encodedContactId);
+      const contact = findContactById(contactId) || {
+        id: contactId,
+        name: contactName,
+        note: 'контакт',
+        status,
+        age: null,
+        email: null,
+        phone: null
+      };
+
+      if (action === 'write') {
+        createPrivateChatWithContact(encodeURIComponent(contact.id));
+        return;
+      }
+
+      if (action === 'view') {
+        showContentScreen(contactProfileScreen(contact), `Контакт: ${contact.name}`, 'Перегляд картки контакту');
+        return;
+      }
+
+      if (action === 'share') {
+        copyContactNumber(encodeURIComponent(contact.id), encodeURIComponent(contact.name));
+      }
+    }
+
+    // Генерує екран контактів з додаванням контакту і списком уже доданих контактів.
+    function contactsScreen() {
+      const rows = appState.contacts.map(contact => {
+        const isOnline = contact.status === 'online';
+        const avatarLetter = escapeHtml(contact.name.slice(0, 1).toUpperCase() || '?');
+        const statusText = isOnline ? 'online' : 'offline';
+        const statusClass = isOnline ? 'online' : '';
+        return `
+          <div class="contact-row" data-contact-id="${escapeHtml(contact.id)}">
+            <div class="contact-avatar">${avatarLetter}</div>
+            <div class="contact-main">
+              <strong>${escapeHtml(contact.name)}</strong>
+              <span>Номер користувача: ${escapeHtml(contact.id)} · ${escapeHtml(contact.note)}</span>
+              <div class="contact-status-line">
+                <span class="contact-status-dot ${statusClass}"></span>
+                <span>${statusText}</span>
+              </div>
+            </div>
+            ${renderContactActions(contact)}
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <h2>Контакти</h2>
+        <p>Контакт додається за унікальним номером користувача, який система автоматично присвоює під час реєстрації — за логікою як у Signal.</p>
+
+        <div class="screen-card contacts-card">
+          <div class="contacts-add-box">
+            <div>
+              <label for="contactIdInput">Номер користувача</label>
+              <input id="contactIdInput" type="text" placeholder="Наприклад: PC-102-458" autocomplete="off" />
+              <div class="contact-id-hint">Цей номер є унікальним і створюється автоматично після реєстрації акаунта.</div>
+            </div>
+            <button class="small-button" type="button" onclick="addContactByUserNumber()">Додати контакт</button>
+          </div>
+
+          <div class="contacts-list-title">Вже додані контакти</div>
+          <div class="contact-list" id="contactsList">
+            ${rows}
+          </div>
+        </div>
+      `;
+    }
+
+    // Додає контакт за унікальним номером користувача через backend.
+    async function addContactByUserNumber() {
+      const input = document.getElementById('contactIdInput');
+      const contactId = normalizeContactId(input?.value);
+
+      if (!contactId) {
+        addMessage('Введіть номер користувача для додавання контакту.', 'incoming', 'System');
+        return;
+      }
+
+      const alreadyExists = appState.contacts.some(contact => contact.id === contactId);
+      if (alreadyExists) {
+        addMessage(`Контакт з номером ${contactId} вже є у списку.`, 'incoming', 'System');
+        return;
+      }
+
+      try {
+        const response = await apiRequest('/contacts', {
+          method: 'POST',
+          body: JSON.stringify({ user_number: contactId })
+        });
+
+        const newContact = mapContactFromApi(response);
+        appState.contacts.push(newContact);
+        showContentScreen(contactsScreen(), 'Контакти', 'Додавання контакту за номером користувача');
+        addMessage(`Контакт ${newContact.name} додано і збережено в БД.`, 'incoming', 'System');
+      } catch (error) {
+        alert(`Не вдалося додати контакт: ${error.message}`);
+      }
+    }
+
+    function openContactChat(encodedContactName, encodedStatus) {
+      const contactName = decodeURIComponent(encodedContactName);
+      const status = decodeURIComponent(encodedStatus);
+      showChatArea();
+      updateChatHeader(contactName, status);
+
+      if (el.chatWindow) {
+        el.chatWindow.innerHTML = `
+          <div class="day-divider">Сьогодні</div>
+          <div class="message-row incoming">
+            <div class="message incoming">
+              Відкрито приватний чат з контактом ${escapeHtml(contactName)}.
+              <span class="message-meta">System · ${getCurrentTime()}</span>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function renderFileActions(file) {
+      const fileName = file.file_name || file.name || 'file';
+      const encodedName = encodeURIComponent(fileName);
+      const encodedId = encodeURIComponent(file.id || '');
+
+      return `
+        <div class="file-actions">
+          <button class="icon-action-btn open" type="button" title="Відкрити файл" onclick="handleFileAction('open', '${encodedId}', '${encodedName}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+              <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </button>
+
+          <button class="icon-action-btn download" type="button" title="Скачати файл" onclick="handleFileAction('download', '${encodedId}', '${encodedName}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+              <path d="M12 3v11"></path>
+              <path d="M7 10l5 5 5-5"></path>
+              <path d="M4 21h16"></path>
+            </svg>
+          </button>
+
+          <button class="icon-action-btn share" type="button" title="Поділитися файлом" onclick="handleFileAction('share', '${encodedId}', '${encodedName}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <path d="M8.7 10.7l6.6-3.4"></path>
+              <path d="M8.7 13.3l6.6 3.4"></path>
+            </svg>
+          </button>
+        </div>
+      `;
+    }
+
+    async function downloadStoredFile(fileId, fileName, openInNewTab = false) {
+      // Файл завантажується через REST API з JWT-заголовком, тому не використовуємо пряме посилання без авторизації.
+      const response = await fetch(`${API_BASE_URL}/files/${encodeURIComponent(fileId)}/download`, {
+        headers: authHeaders()
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      if (openInNewTab) {
+        window.open(url, '_blank', 'noopener');
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+        return;
+      }
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function handleFileAction(action, encodedFileId, encodedFileName) {
+      const fileId = decodeURIComponent(encodedFileId || '');
+      const fileName = decodeURIComponent(encodedFileName);
+
+      try {
+        if ((action === 'open' || action === 'download') && fileId) {
+          await downloadStoredFile(fileId, fileName, action === 'open');
+          return;
+        }
+
+        if (action === 'share') {
+          await navigator.clipboard.writeText(fileName);
+          alert(`Назву файлу скопійовано: ${fileName}`);
+        }
+      } catch (error) {
+        alert(`Не вдалося виконати дію з файлом: ${error.message}`);
+      }
+    }
+
+    // Відкриває екран створення нового групового чату.
+    function showCreateGroupChatScreen() {
+      showContentScreen(groupChatScreen(), 'Створити груповий чат', 'Вибір контактів для нової групової кімнати');
+    }
+
+    // Генерує екран створення групової кімнати і вибору учасників.
+    function groupChatScreen() {
+      const groupContacts = appState.contacts;
+
+      const contactRows = groupContacts.map(contact => {
+        const isMember = appState.groupDraft.members.some(member => member.id === contact.id);
+        const avatarLetter = escapeHtml(contact.name.slice(0, 1).toUpperCase() || '?');
+        const disabledText = isMember ? '✓' : '+';
+        const buttonTitle = isMember ? 'Контакт уже додано' : 'Додати в кімнату';
+
+        return `
+          <div class="group-contact-item">
+            <div class="contact-avatar">${avatarLetter}</div>
+            <div>
+              <strong>${escapeHtml(contact.name)}</strong>
+              <span>${escapeHtml(contact.id)} · ${escapeHtml(contact.status)}</span>
+            </div>
+            <button class="mini-icon-btn" type="button" title="${buttonTitle}" onclick="addContactToGroup('${encodeURIComponent(contact.id)}')">${disabledText}</button>
+          </div>
+        `;
+      }).join('');
+
+      const memberRows = appState.groupDraft.members.length
+        ? appState.groupDraft.members.map(member => {
+            const avatarLetter = escapeHtml(member.name.slice(0, 1).toUpperCase() || '?');
+            return `
+              <div class="group-member-item">
+                <div class="contact-avatar">${avatarLetter}</div>
+                <div>
+                  <strong>${escapeHtml(member.name)}</strong>
+                  <span>${escapeHtml(member.id)}</span>
+                </div>
+                <button class="mini-icon-btn remove" type="button" title="Видалити з кімнати" onclick="removeContactFromGroup('${encodeURIComponent(member.id)}')">−</button>
+              </div>
+            `;
+          }).join('')
+        : '<div class="field-note">Поки нікого не додано. Ви як власник кімнати будете адміністратором автоматично, а тут додаються тільки інші учасники.</div>';
+
+      const createdInfo = appState.createdGroup
+        ? `
+          <div class="group-created-box">
+            <strong>Остання створена кімната: ${escapeHtml(appState.createdGroup.name)}</strong>
+            <span>Ви — адміністратор · Учасники: ${appState.createdGroup.members.map(member => escapeHtml(member.name)).join(', ') || 'немає доданих контактів'}</span>
+          </div>
+        `
+        : '';
+
+      return `
+        <h2>Груповий чат</h2>
+        <p>Користувач створює окремі кімнати групового чату. Ви автоматично є адміністратором створеної кімнати, тому себе в учасники додавати не потрібно.</p>
+
+        <div class="screen-card group-chat-card">
+          <div class="group-room-name">
+            <label for="groupRoomNameInput">Назва кімнати</label>
+            <input id="groupRoomNameInput" type="text" value="${escapeHtml(appState.groupDraft.name)}" placeholder="Наприклад: Робоча група" oninput="updateGroupDraftName(this.value)" />
+            <div class="contact-id-hint">У backend це буде окрема group/chat-room сутність. Власник кімнати буде admin за замовчуванням.</div>
+          </div>
+
+          <div class="group-layout">
+            <div class="group-panel">
+              <h3>Мої контакти</h3>
+              <div class="group-contact-list">
+                ${contactRows}
+              </div>
+            </div>
+
+            <div class="group-panel">
+              <h3>Учасники кімнати</h3>
+              <div class="group-member-list">
+                ${memberRows}
+              </div>
+            </div>
+          </div>
+
+          <div class="screen-actions">
+            <button class="small-button" type="button" onclick="createGroupRoom()">Створити груповий чат</button>
+            <button class="small-button secondary" type="button" onclick="clearGroupDraft()">Очистити кімнату</button>
+          </div>
+
+          ${createdInfo}
+        </div>
+      `;
+    }
+
+    // Оновлює назву групової кімнати під час введення.
+    function updateGroupDraftName(value) {
+      appState.groupDraft.name = value.trim() || 'Новий груповий чат';
+    }
+
+    function refreshGroupScreen() {
+      showContentScreen(groupChatScreen(), 'Груповий чат', 'Створення кімнати та керування учасниками');
+    }
+
+    // Додає контакт до чернетки групового чату.
+    function addContactToGroup(encodedContactId) {
+      const contactId = decodeURIComponent(encodedContactId);
+      const contact = appState.contacts.find(item => item.id === contactId);
+      if (!contact) return;
+
+      const exists = appState.groupDraft.members.some(member => member.id === contactId);
+      if (!exists) {
+        appState.groupDraft.members.push(contact);
+      }
+
+      refreshGroupScreen();
+    }
+
+    // Видаляє контакт із чернетки групового чату.
+    function removeContactFromGroup(encodedContactId) {
+      const contactId = decodeURIComponent(encodedContactId);
+      appState.groupDraft.members = appState.groupDraft.members.filter(member => member.id !== contactId);
+      refreshGroupScreen();
+    }
+
+    function clearGroupDraft() {
+      appState.groupDraft.members = [];
+      appState.groupDraft.name = 'Новий груповий чат';
+      refreshGroupScreen();
+    }
+
+    // Створює груповий чат, додає його в дерево і відкриває кімнату.
+    async function createGroupRoom() {
+      if (!appState.groupDraft.members.length) {
+        alert('Додайте хоча б одного контакта до групового чату. Ви як admin додаєтесь автоматично.');
+        return;
+      }
+
+      let room;
+      try {
+        const response = await apiRequest('/chats/group', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: appState.groupDraft.name || 'Новий груповий чат',
+            member_ids: appState.groupDraft.members.map(member => member.userId).filter(Boolean)
+          })
+        });
+        room = mapGroupChatFromApi(response);
+      } catch (error) {
+        alert(`Не вдалося створити груповий чат: ${error.message}`);
+        return;
+      }
+
+      appState.createdGroup = room;
+      appState.groupRooms.push(room);
+      appState.currentGroupRoomId = room.id;
+
+      appState.groupDraft = {
+        name: 'Новий груповий чат',
+        members: []
+      };
+
+      renderGroupRoomsMenu();
+
+      openGroupChatRoom(room);
+    }
+
+    // Перемальовує дерево створених групових чатів у sidebar.
+    function renderGroupRoomsMenu() {
+      const menu = document.getElementById('groupRoomsMenu');
+      const toggle = document.getElementById('groupTreeToggle');
+      if (!menu) return;
+
+      menu.classList.toggle('collapsed', appState.groupRoomsCollapsed);
+      if (toggle) toggle.textContent = appState.groupRoomsCollapsed ? '▸' : '▾';
+
+      menu.innerHTML = appState.groupRooms.map(room => {
+        const memberNames = room.members.map(member => member.name).join(', ') || 'без учасників';
+        const activeClass = room.id === appState.currentGroupRoomId ? 'active' : '';
+
+        return `
+          <li class="group-room-link ${activeClass}" title="${escapeHtml(room.name)}">
+            <div class="tree-link-main" onclick="openGroupRoomById('${encodeURIComponent(room.id)}')">
+              <span>${escapeHtml(room.name)}</span>
+              <small>${escapeHtml(memberNames)}</small>
+            </div>
+            <button class="tree-delete-btn" type="button" title="Видалити груповий чат" onclick="event.stopPropagation(); deleteGroupRoom('${encodeURIComponent(room.id)}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                <path d="M3 6h18"></path>
+                <path d="M8 6V4h8v2"></path>
+                <path d="M19 6l-1 14H6L5 6"></path>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
+              </svg>
+            </button>
+          </li>
+        `;
+      }).join('');
+    }
+
+    // Згортає або розгортає дерево групових чатів.
+    function toggleGroupRoomsTree() {
+      appState.groupRoomsCollapsed = !appState.groupRoomsCollapsed;
+      renderGroupRoomsMenu();
+    }
+
+    // Видаляє груповий чат зі списку в sidebar після підтвердження.
+    async function deleteGroupRoom(encodedRoomId) {
+      const roomId = decodeURIComponent(encodedRoomId);
+      const room = appState.groupRooms.find(item => item.id === roomId);
+      const roomName = room?.name || 'груповий чат';
+
+      if (!confirm(`Видалити груповий чат «${roomName}» зі списку?`)) return;
+
+      try {
+        await apiRequest(`/chats/${encodeURIComponent(roomId)}`, { method: 'DELETE' });
+      } catch (error) {
+        alert(`Не вдалося видалити груповий чат: ${error.message}`);
+        return;
+      }
+
+      appState.groupRooms = appState.groupRooms.filter(item => item.id !== roomId);
+
+      if (appState.currentGroupRoomId === roomId) {
+        appState.currentGroupRoomId = null;
+        appState.createdGroup = null;
+        showContentScreen(groupChatScreen(), 'Груповий чат', 'Створення кімнати та керування учасниками');
+      }
+
+      renderGroupRoomsMenu();
+    }
+
+    // Відкриває групову кімнату за її ідентифікатором.
+    function openGroupRoomById(encodedRoomId) {
+      const roomId = decodeURIComponent(encodedRoomId);
+      const room = appState.groupRooms.find(item => item.id === roomId);
+      if (!room) return;
+
+      appState.currentGroupRoomId = room.id;
+      renderGroupRoomsMenu();
+      openGroupChatRoom(room);
+    }
+
+    // Показує вікно повідомлень конкретного групового чату.
+    function openGroupChatRoom(group) {
+      const groupName = group?.name || 'Груповий чат';
+      const members = Array.isArray(group?.members) ? group.members : [];
+      const memberNames = members.map(member => member.name).join(', ') || 'немає доданих контактів';
+
+      showChatArea();
+      appState.activeChatId = group.id;
+      connectChatSocket(group.id);
+
+      if (el.currentChatTitle) {
+        el.currentChatTitle.textContent = `Груповий чат: ${groupName}`;
+      }
+
+      if (el.currentChatStatus) {
+        el.currentChatStatus.textContent = `Ви — адміністратор · Учасники: ${memberNames} · WebSocket активний`;
+      }
+
+      if (el.chatWindow) {
+        el.chatWindow.innerHTML = `
+          <div class="day-divider">Сьогодні</div>
+          <div class="message-row incoming">
+            <div class="message incoming">
+              Кімнату групового чату «${escapeHtml(groupName)}» відкрито. Тут можна писати повідомлення, читати відповіді та обмінюватися файлами.
+              <span class="message-meta">System · ${getCurrentTime()}</span>
+            </div>
+          </div>
+          <div class="message-row incoming">
+            <div class="message incoming">
+              Ви — адміністратор цієї кімнати. Учасники: ${escapeHtml(memberNames)}.
+              <span class="message-meta">System · ${getCurrentTime()}</span>
+            </div>
+          </div>
+        `;
+      }
+
+      appState.selectedChatUser = groupName;
+
+      loadChatMessages(group.id).catch(error => {
+        addMessage(`Не вдалося завантажити історію: ${error.message}`, 'incoming', 'System');
+      });
+    }
+
+    // Генерує екран зі списком приватних чатів.
+    function privateChatsScreen() {
+      const rows = appState.privateChats.length
+        ? appState.privateChats.map(chat => {
+            const activeClass = chat.id === appState.currentPrivateChatId ? 'active' : '';
+            return `
+              <div class="private-chat-contact-row ${activeClass}">
+                <div class="contact-avatar">${escapeHtml(chat.contact.name.slice(0, 1).toUpperCase() || '?')}</div>
+                <div>
+                  <strong>${escapeHtml(chat.contact.name)}</strong>
+                  <span>${escapeHtml(chat.contact.id)} · приватний чат</span>
+                </div>
+                <button class="small-button secondary" type="button" onclick="openPrivateChatById('${encodeURIComponent(chat.id)}')">Відкрити</button>
+              </div>
+            `;
+          }).join('')
+        : '<div class="field-note">Поки немає приватних чатів. Натисніть “+” біля пункту “Чати”, щоб вибрати контакт.</div>';
+
+      return `
+        <h2>Чати</h2>
+        <p>Тут зберігається список приватних діалогів. Щоб створити новий чат, натисніть “+” біля пункту “Чати” в меню.</p>
+        <div class="screen-card private-chat-card">
+          <div class="contacts-list-title">Мої приватні чати</div>
+          <div class="private-chat-contact-list">
+            ${rows}
+          </div>
+        </div>
+      `;
+    }
+
+    // Відкриває екран вибору контакту для нового приватного чату.
+    function showCreatePrivateChatScreen() {
+      const rows = appState.contacts
+        .map(contact => {
+          const hasChat = appState.privateChats.some(chat => chat.contact.id === contact.id);
+          const buttonText = hasChat ? 'Відкрити чат' : 'Створити чат';
+
+          return `
+            <div class="private-chat-contact-row">
+              <div class="contact-avatar">${escapeHtml(contact.name.slice(0, 1).toUpperCase() || '?')}</div>
+              <div>
+                <strong>${escapeHtml(contact.name)}</strong>
+                <span>${escapeHtml(contact.id)} · ${escapeHtml(contact.status)}</span>
+              </div>
+              <button class="small-button secondary" type="button" onclick="createPrivateChatWithContact('${encodeURIComponent(contact.id)}')">${buttonText}</button>
+            </div>
+          `;
+        }).join('');
+
+      showContentScreen(`
+        <h2>Створити приватний чат</h2>
+        <p>Виберіть контакт, з яким хочете почати приватну переписку.</p>
+        <div class="screen-card private-chat-card">
+          <div class="contacts-list-title">Контакти</div>
+          <div class="private-chat-contact-list">
+            ${rows}
+          </div>
+        </div>
+      `, 'Створити приватний чат', 'Вибір контакту для приватного діалогу');
+    }
+
+    // Створює або відкриває приватний чат із вибраним контактом.
+    async function createPrivateChatWithContact(encodedContactId) {
+      const contactId = decodeURIComponent(encodedContactId);
+      const contact = appState.contacts.find(item => item.id === contactId);
+      if (!contact) return;
+
+      let chat = appState.privateChats.find(item => item.contact.id === contactId);
+
+      if (!chat) {
+        try {
+          const response = await apiRequest('/chats/private', {
+            method: 'POST',
+            body: JSON.stringify({ contact_user_id: contact.userId })
+          });
+          chat = mapPrivateChatFromApi(response);
+          appState.privateChats.push(chat);
+        } catch (error) {
+          alert(`Не вдалося створити приватний чат: ${error.message}`);
+          return;
+        }
+      }
+
+      appState.currentPrivateChatId = chat.id;
+      appState.privateChatsCollapsed = false;
+      renderPrivateChatsMenu();
+      openPrivateChatRoom(chat);
+    }
+
+    // Перемальовує дерево приватних чатів у sidebar.
+    function renderPrivateChatsMenu() {
+      const menu = document.getElementById('privateChatsMenu');
+      const toggle = document.getElementById('privateTreeToggle');
+      if (!menu) return;
+
+      menu.classList.toggle('collapsed', appState.privateChatsCollapsed);
+      if (toggle) toggle.textContent = appState.privateChatsCollapsed ? '▸' : '▾';
+
+      menu.innerHTML = appState.privateChats.map(chat => {
+        const activeClass = chat.id === appState.currentPrivateChatId ? 'active' : '';
+
+        return `
+          <li class="private-chat-link ${activeClass}" title="${escapeHtml(chat.contact.name)}">
+            <div class="tree-link-main" onclick="openPrivateChatById('${encodeURIComponent(chat.id)}')">
+              <span>${escapeHtml(chat.contact.name)}</span>
+              <small>${escapeHtml(chat.contact.status)} · приватний чат</small>
+            </div>
+            <button class="tree-delete-btn" type="button" title="Видалити приватний чат" onclick="event.stopPropagation(); deletePrivateChat('${encodeURIComponent(chat.id)}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                <path d="M3 6h18"></path>
+                <path d="M8 6V4h8v2"></path>
+                <path d="M19 6l-1 14H6L5 6"></path>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
+              </svg>
+            </button>
+          </li>
+        `;
+      }).join('');
+    }
+
+    // Згортає або розгортає дерево приватних чатів.
+    function togglePrivateChatsTree() {
+      appState.privateChatsCollapsed = !appState.privateChatsCollapsed;
+      renderPrivateChatsMenu();
+    }
+
+    // Видаляє приватний чат зі списку після підтвердження.
+    async function deletePrivateChat(encodedChatId) {
+      const chatId = decodeURIComponent(encodedChatId);
+      const chat = appState.privateChats.find(item => item.id === chatId);
+      const contactName = chat?.contact?.name || 'приватний чат';
+
+      if (!confirm(`Видалити чат з ${contactName} зі списку?`)) return;
+
+      try {
+        await apiRequest(`/chats/${encodeURIComponent(chatId)}`, { method: 'DELETE' });
+      } catch (error) {
+        alert(`Не вдалося видалити приватний чат: ${error.message}`);
+        return;
+      }
+
+      appState.privateChats = appState.privateChats.filter(item => item.id !== chatId);
+
+      if (appState.currentPrivateChatId === chatId) {
+        appState.currentPrivateChatId = null;
+        showContentScreen(privateChatsScreen(), 'Чати', 'Список приватних діалогів');
+      }
+
+      renderPrivateChatsMenu();
+    }
+
+    // Відкриває приватний чат за його ідентифікатором.
+    function openPrivateChatById(encodedChatId) {
+      const chatId = decodeURIComponent(encodedChatId);
+      const chat = appState.privateChats.find(item => item.id === chatId);
+      if (!chat) return;
+
+      appState.currentPrivateChatId = chat.id;
+      appState.privateChatsCollapsed = false;
+      renderPrivateChatsMenu();
+      openPrivateChatRoom(chat);
+    }
+
+    // Показує вікно повідомлень конкретного приватного чату.
+    function openPrivateChatRoom(chat) {
+      const contactName = chat.contact.name;
+
+      showChatArea();
+      updateChatHeader(contactName, chat.contact.status);
+      appState.activeChatId = chat.id;
+      connectChatSocket(chat.id);
+
+      if (el.chatWindow) {
+        el.chatWindow.innerHTML = `
+          <div class="day-divider">Сьогодні</div>
+          <div class="message-row incoming">
+            <div class="message incoming">
+              Приватний чат з ${escapeHtml(contactName)} відкрито. Тут можна писати повідомлення, читати відповіді та обмінюватися файлами.
+              <span class="message-meta">System · ${getCurrentTime()}</span>
+            </div>
+          </div>
+        `;
+      }
+
+      loadChatMessages(chat.id).catch(error => {
+        addMessage(`Не вдалося завантажити історію: ${error.message}`, 'incoming', 'System');
+      });
+    }
+
+    function formatFileSize(sizeBytes) {
+      if (!sizeBytes) return 'розмір невідомий';
+      const units = ['B', 'KB', 'MB', 'GB'];
+      let size = Number(sizeBytes);
+      let unitIndex = 0;
+      while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex += 1;
+      }
+      return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+    }
+
+    function formatDateTime(value) {
+      if (!value) return 'час невідомий';
+      return new Date(value).toLocaleString('uk-UA', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    // Генерує екран отриманих або відправлених файлів на основі даних з backend.
+    function filesScreen(type, files = []) {
+      const isReceived = type === 'in';
+      const title = isReceived ? 'Отримані файли' : 'Відправлені файли';
+      const description = isReceived
+        ? 'Список файлів, які користувач отримав у приватних чатах. Біля кожного файлу показано, від кого він був отриманий.'
+        : 'Список файлів, які користувач відправив іншим користувачам. Біля кожного файлу показано, кому він був відправлений.';
+
+      const rows = files.map(file => {
+        const label = isReceived ? 'Отримано' : 'Відправлено';
+        const badgeClass = isReceived ? 'received' : 'sent';
+        const meta = `${file.mime_type || 'файл'} · ${formatFileSize(file.size_bytes)}`;
+        const time = formatDateTime(file.created_at);
+
+        return `
+          <div class="file-row">
+            <div>
+              <strong>${escapeHtml(file.file_name)}</strong>
+              <span>${escapeHtml(meta)}</span>
+              <div class="file-meta-line">
+                <span class="file-direction-badge ${badgeClass}">${label}</span>
+                <span class="file-contact-note">${escapeHtml(time)}</span>
+              </div>
+            </div>
+            ${renderFileActions(file)}
+          </div>
+        `;
+      }).join('') || '<div class="field-note">Файлів поки немає.</div>';
+
+      return `
+        <h2>${title}</h2>
+        <p>${description}</p>
+        <div class="screen-card">
+          ${rows}
+        </div>
+      `;
+    }
+
+    async function showFilesScreen(type, title) {
+      const direction = type === 'in' ? 'received' : 'sent';
+      showContentScreen(
+        '<h2>Файли</h2><div class="screen-card"><div class="field-note">Завантаження списку файлів...</div></div>',
+        title,
+        'Отримання даних з backend'
+      );
+
+      try {
+        const files = await apiRequest(`/files?direction=${direction}`);
+        showContentScreen(filesScreen(type, files), title, 'Файли збережені у backend');
+      } catch (error) {
+        showContentScreen(
+          `<h2>${escapeHtml(title)}</h2><div class="screen-card"><div class="field-note">Не вдалося завантажити файли: ${escapeHtml(error.message)}</div></div>`,
+          title,
+          'Помилка завантаження'
+        );
+      }
+    }
+
+    function openRegistrationModal() {
+      if (!el.startRegisterFormPlace || !el.registerModalBackdrop) return;
+      el.startRegisterFormPlace.innerHTML = registrationScreen();
+      el.registerModalBackdrop.classList.remove('hidden');
+    }
+
+    function closeRegistrationModal() {
+      el.registerModalBackdrop?.classList.add('hidden');
+    }
+
+    function updateOnlineUsersCount() {
+      const count = document.querySelectorAll('#usersList .user-card[data-status="online"]').length;
+      const badge = document.getElementById('onlineUsersCount');
+      if (badge) badge.textContent = String(count);
+    }
+
+    // Нижче підключаються обробники подій для кнопок і елементів інтерфейсу.
+    safeOn(el.startLoginButton, 'click', enterChat);
+    safeOn(el.startRegisterButton, 'click', openRegistrationModal);
+    safeOn(el.closeRegisterModal, 'click', closeRegistrationModal);
+    safeOn(el.profileAvatarButton, 'click', toggleProfileWidget);
+
+    safeOn(el.registerModalBackdrop, 'click', (event) => {
+      if (event.target === el.registerModalBackdrop) {
+        closeRegistrationModal();
+      }
+    });
+
+    safeOn(el.startPasswordInput, 'keydown', (event) => {
+      if (event.key === 'Enter') {
+        enterChat();
+      }
+    });
+
+    document.addEventListener('click', (event) => {
+      if (el.profileWidget?.classList.contains('hidden')) return;
+      if (el.profileWidget?.contains(event.target) || el.profileAvatarButton?.contains(event.target)) return;
+      closeProfileWidget();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        closeProfileWidget();
+      }
+    });
+
+    safeOn(el.startLanguageSelect, 'change', () => {
+      const language = el.startLanguageSelect.options[el.startLanguageSelect.selectedIndex].text;
+      console.log(`Selected language: ${language}`);
+    });
+
+    safeOn(el.usersList, 'click', (event) => {
+      const card = event.target.closest('.user-card');
+      if (!card) return;
+
+      document.querySelectorAll('.user-card').forEach(item => {
+        item.classList.remove('active');
+      });
+
+      card.classList.add('active');
+
+      const contactId = card.dataset.contactId;
+      if (contactId) createPrivateChatWithContact(encodeURIComponent(contactId));
+    });
+
+    safeOn(el.messageForm, 'submit', async (event) => {
+      event.preventDefault();
+
+      const text = el.messageInput?.value.trim();
+      if (!text) return;
+
+      if (!appState.activeChatId) {
+        addMessage('Спочатку відкрийте приватний або груповий чат.', 'incoming', 'System');
+        return;
+      }
+
+      try {
+        if (appState.activeSocket?.readyState === WebSocket.OPEN) {
+          appState.activeSocket.send(JSON.stringify({
+            event: 'message.send',
+            chat_id: appState.activeChatId,
+            payload: {
+              type: 'text',
+              body: text
+            }
+          }));
+        } else {
+          const message = await apiRequest(`/chats/${encodeURIComponent(appState.activeChatId)}/messages`, {
+            method: 'POST',
+            body: JSON.stringify({ type: 'text', body: text })
+          });
+          renderIncomingPayload(message);
+        }
+
+        el.messageInput.value = '';
+      } catch (error) {
+        alert(`Не вдалося відправити повідомлення: ${error.message}`);
+      }
+    });
+
+    safeOn(el.fileButton, 'click', () => {
+      addMessage('Файли підтримуються backend endpoint: POST /api/chats/{chat_id}/files.', 'incoming', 'System');
+    });
+
+    document.querySelectorAll('.menu-parent').forEach(parent => {
+      parent.addEventListener('click', () => {
+        const group = parent.closest('.menu-group');
+        const isOpen = group.classList.contains('open');
+
+        document.querySelectorAll('.menu-group').forEach(item => {
+          item.classList.remove('open');
+        });
+
+        document.querySelectorAll('.menu-parent').forEach(item => {
+          item.classList.remove('active');
+        });
+
+        if (!isOpen) {
+          group.classList.add('open');
+          parent.classList.add('active');
+        }
+      });
+    });
+
+    document.querySelectorAll('.menu-item').forEach(item => {
+      item.addEventListener('click', () => {
+        document.querySelectorAll('.menu-item').forEach(menu => menu.classList.remove('active'));
+        item.classList.add('active');
+
+        const parent = item.closest('.menu-group').querySelector('.menu-parent');
+        document.querySelectorAll('.menu-parent').forEach(menu => menu.classList.remove('active'));
+        parent.classList.add('active');
+
+        const section = item.dataset.section;
+        const title = item.textContent.trim();
+
+        if (section === 'contacts') {
+          showContentScreen(contactsScreen(), 'Контакти', 'Додавання контакту за номером користувача');
+          return;
+        }
+
+        if (section === 'private') {
+          showContentScreen(privateChatsScreen(), 'Чати', 'Список приватних діалогів');
+          return;
+        }
+
+        if (section === 'groups') {
+          showContentScreen(groupChatScreen(), 'Груповий чат', 'Створення кімнати та керування учасниками');
+          return;
+        }
+
+        if (section === 'language') {
+          showContentScreen(languageScreen(), 'Вибір мови', 'Тут буде перемикання мови інтерфейсу');
+          return;
+        }
+
+        if (section === 'delete') {
+          showContentScreen(deleteAccountScreen(), 'Видалення акаунту', 'Повторне підтвердження дії');
+          return;
+        }
+
+        if (section === 'edit') {
+          showContentScreen(editAccountScreen(), 'Редагування акаунту', 'Зміна даних користувача');
+          return;
+        }
+
+        if (section === 'files-in') {
+          showFilesScreen('in', title);
+          return;
+        }
+
+        if (section === 'files-out') {
+          showFilesScreen('out', title);
+          return;
+        }
+
+        showContentScreen(
+          `<h2>${escapeHtml(title)}</h2><p>Розділ не містить додаткових налаштувань.</p>`,
+          title,
+          'Немає додаткових дій'
+        );
+      });
+    });
+
+    updateOnlineUsersCount();
+    renderGroupRoomsMenu();
+    renderPrivateChatsMenu();
+  </script>
+</body>
+</html>
