@@ -60,6 +60,9 @@ docker build -t prosto-chat-frontend:latest frontend
 docker build -t prosto-chat-notification-worker:latest notification_worker
 k3d image import prosto-chat-backend:latest prosto-chat-frontend:latest prosto-chat-notification-worker:latest -c prosto-chat-k3s
 kubectl apply -f k3s/namespace.yaml
+cp k3s/secrets.example.yaml k3s/secrets.yaml
+# Відредагуйте k3s/secrets.yaml і встановіть унікальні надійні паролі та JWT_SECRET.
+# Файл k3s/secrets.yaml ігнорується Git і не повинен потрапляти до репозиторію.
 kubectl apply -f k3s/configmap.yaml -f k3s/secrets.yaml -f k3s/services.yaml
 kubectl apply -f k3s/postgres-statefulset.yaml -f k3s/rabbitmq-deployment.yaml
 kubectl apply -f k3s/backend-deployment.yaml -f k3s/frontend-deployment.yaml -f k3s/notification-worker-deployment.yaml -f k3s/ingress.yaml
