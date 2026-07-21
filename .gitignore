@@ -12,3 +12,6 @@ __pycache__/
 node_modules/
 media/uploads/*
 postgres_data/
+
+# Local Kubernetes secrets
+k3s/secrets.yaml
